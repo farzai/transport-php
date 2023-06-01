@@ -109,8 +109,8 @@ class Response implements ResponseInterface
         };
 
         return $callback(
-            $this, 
-            !$this->isSuccessfull() ? ResponseExceptionFactory::create($this) : null
+            $this,
+            ! $this->isSuccessfull() ? ResponseExceptionFactory::create($this) : null
         ) ?: $this;
     }
 
