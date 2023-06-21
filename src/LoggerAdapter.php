@@ -33,20 +33,22 @@ class LoggerAdapter implements ClientInterface
      */
     public function sendRequest(RequestInterface $request): ResponseInterface
     {
-        $this->logger->debug('Request', [
-            'method' => $request->getMethod(),
-            'uri' => $request->getUri(),
-            'headers' => $request->getHeaders(),
-            'body' => $request->getBody(),
-        ]);
+        $this->logger->debug(sprintf(
+            'REQUEST: [%s] - %s: %s',
+            date('Y-m-d H:i:s.u'),
+            $request->getMethod(),
+            $request->getUri()
+        ));
 
         $response = $this->client->sendRequest($request);
 
-        $this->logger->debug('Response', [
-            'status_code' => $response->getStatusCode(),
-            'headers' => $response->getHeaders(),
-            'body' => $response->getBody(),
-        ]);
+        $this->logger->debug(sprintf(
+            'RESPONSE: [%s] - %s: %s - %s',
+            date('Y-m-d H:i:s.u'),
+            $request->getMethod(),
+            $request->getUri(),
+            $response->getStatusCode()
+        ));
 
         return $response;
     }
