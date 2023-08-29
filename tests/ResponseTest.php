@@ -1,166 +1,137 @@
 <?php
 
 use Farzai\Transport\Response;
-use Mockery as Mock;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 
 it('can get the response status code', function () {
+    $baseRequest = $this->createMock(RequestInterface::class);
+
+    $baseResponse = $this->createMock(ResponseInterface::class);
+    $baseResponse->method('getStatusCode')->willReturn(200);
+
     $response = new Response(
-        Mock::mock(RequestInterface::class),
-        Mock::mock(ResponseInterface::class)
-            ->shouldReceive('getStatusCode')
-            ->once()
-            ->andReturn(200)
-            ->getMock()
+        $baseRequest,
+        $baseResponse,
     );
 
-    $this->assertEquals(200, $response->statusCode());
+    expect($response->statusCode())->toBe(200);
+    expect($response->isSuccessfull())->toBeTrue();
 });
 
 it('can get the response body', function () {
-    $stream = Mock::mock(StreamInterface::class)
-        ->shouldReceive('getContents')
-        ->once()
-        ->andReturn('{"foo":"bar"}')
-        ->getMock();
+    $stream = $this->createMock(StreamInterface::class);
+    $stream->method('getContents')->willReturn('{"foo":"bar"}');
+
+    $baseResponse = $this->createMock(ResponseInterface::class);
+    $baseResponse->method('getBody')->willReturn($stream);
 
     $response = new Response(
-        Mock::mock(RequestInterface::class),
-        Mock::mock(ResponseInterface::class)
-            ->shouldReceive('getBody')
-            ->once()
-            ->andReturn($stream)
-            ->getMock()
+        $this->createMock(RequestInterface::class),
+        $baseResponse,
     );
 
-    $this->assertEquals('{"foo":"bar"}', $response->body());
+    expect($response->body())->toBe('{"foo":"bar"}');
 });
 
 it('can get the response headers', function () {
+    $baseResponse = $this->createMock(ResponseInterface::class);
+    $baseResponse->method('getHeaders')->willReturn(['Content-Type' => ['application/json']]);
+
     $response = new Response(
-        Mock::mock(RequestInterface::class),
-        Mock::mock(ResponseInterface::class)
-            ->shouldReceive('getHeaders')
-            ->once()
-            ->andReturn(['Content-Type' => ['application/json']])
-            ->getMock()
+        $this->createMock(RequestInterface::class),
+        $baseResponse,
     );
 
-    $this->assertEquals(['Content-Type' => ['application/json']], $response->headers());
-});
-
-it('can check if the response is successfull', function () {
-    $response = new Response(
-        Mock::mock(RequestInterface::class),
-        Mock::mock(ResponseInterface::class)
-            ->shouldReceive('getStatusCode')
-            ->andReturn(200)
-            ->getMock()
-    );
-
-    $this->assertTrue($response->isSuccessfull());
+    expect($response->headers())->toBe(['Content-Type' => ['application/json']]);
 });
 
 it('can check if the response is not successfull', function () {
+    $baseResponse = $this->createMock(ResponseInterface::class);
+    $baseResponse->method('getStatusCode')->willReturn(400);
+
     $response = new Response(
-        Mock::mock(RequestInterface::class),
-        Mock::mock(ResponseInterface::class)
-            ->shouldReceive('getStatusCode')
-            ->andReturn(400)
-            ->getMock()
+        $this->createMock(RequestInterface::class),
+        $baseResponse,
     );
 
-    $this->assertFalse($response->isSuccessfull());
+    expect($response->isSuccessfull())->toBeFalse();
+    expect($response->statusCode())->toBe(400);
 });
 
 it('can get json body as array', function () {
-    $stream = Mock::mock(StreamInterface::class)
-        ->shouldReceive('getContents')
-        ->once()
-        ->andReturn('{"foo":"bar"}')
-        ->getMock();
+    $stream = $this->createMock(StreamInterface::class);
+    $stream->method('getContents')->willReturn('{"foo":"bar"}');
+
+    $baseResponse = $this->createMock(ResponseInterface::class);
+    $baseResponse->method('getBody')->willReturn($stream);
 
     $response = new Response(
-        Mock::mock(RequestInterface::class),
-        Mock::mock(ResponseInterface::class)
-            ->shouldReceive('getBody')
-            ->once()
-            ->andReturn($stream)
-            ->getMock()
+        $this->createMock(RequestInterface::class),
+        $baseResponse,
     );
 
-    $this->assertEquals(['foo' => 'bar'], $response->json());
+    expect($response->json())->toBe(['foo' => 'bar']);
 });
 
 it('cannot get json when invalid json format', function () {
-    $stream = Mock::mock(StreamInterface::class)
-        ->shouldReceive('getContents')
-        ->once()
-        ->andReturn('{"foo":"bar"')
-        ->getMock();
+    $stream = $this->createMock(StreamInterface::class);
+    $stream->method('getContents')->willReturn('{"foo":"bar"');
+
+    $baseResponse = $this->createMock(ResponseInterface::class);
+    $baseResponse->method('getBody')->willReturn($stream);
 
     $response = new Response(
-        Mock::mock(RequestInterface::class),
-        Mock::mock(ResponseInterface::class)
-            ->shouldReceive('getBody')
-            ->once()
-            ->andReturn($stream)
-            ->getMock()
+        $this->createMock(RequestInterface::class),
+        $baseResponse,
     );
 
     expect($response->json())->toBeNull();
 });
 
 it('can specify key name to get json body', function () {
-    $stream = Mock::mock(StreamInterface::class)
-        ->shouldReceive('getContents')
-        ->once()
-        ->andReturn('{"foo":"bar"}')
-        ->getMock();
+    $stream = $this->createMock(StreamInterface::class);
+    $stream->method('getContents')->willReturn('{"foo":"bar"}');
+
+    $baseResponse = $this->createMock(ResponseInterface::class);
+    $baseResponse->method('getBody')->willReturn($stream);
 
     $response = new Response(
-        Mock::mock(RequestInterface::class),
-        Mock::mock(ResponseInterface::class)
-            ->shouldReceive('getBody')
-            ->once()
-            ->andReturn($stream)
-            ->getMock()
+        $this->createMock(RequestInterface::class),
+        $baseResponse,
     );
 
-    $this->assertEquals('bar', $response->json('foo'));
+    expect($response->json('foo'))->toBe('bar');
 });
 
 it('can throw error if response status is not success', function () {
-    $stream = Mock::mock(StreamInterface::class)
-        ->shouldReceive('getContents')
-        ->once()
-        ->andReturn('{"error": "invalid_request"}')
-        ->getMock();
+    $stream = $this->createMock(StreamInterface::class);
+    $stream->method('getContents')->willReturn('{"error": "invalid_request"}');
+
+    $baseResponse = $this->createMock(ResponseInterface::class);
+    $baseResponse->method('getStatusCode')->willReturn(400);
+    $baseResponse->method('getBody')->willReturn($stream);
 
     $response = new Response(
-        Mock::mock(RequestInterface::class),
-        Mock::mock(ResponseInterface::class)
-            ->shouldReceive('getStatusCode')
-            ->andReturn(400)
-            ->shouldReceive('getBody')
-            ->once()
-            ->andReturn($stream)
-            ->getMock()
+        $this->createMock(RequestInterface::class),
+        $baseResponse,
+
     );
 
     $response->throw();
 })->throws(\GuzzleHttp\Exception\BadResponseException::class);
 
 it('should not throw error if response status is success', function () {
+    $baseResponse = $this->createMock(ResponseInterface::class);
+    $baseResponse->method('getStatusCode')->willReturn(200);
+
     $response = new Response(
-        Mock::mock(RequestInterface::class),
-        Mock::mock(ResponseInterface::class)
-            ->shouldReceive('getStatusCode')
-            ->andReturn(200)
-            ->getMock()
+        $this->createMock(RequestInterface::class),
+        $baseResponse,
     );
 
     $response->throw();
+
+    expect($response->isSuccessfull())->toBeTrue();
 });
