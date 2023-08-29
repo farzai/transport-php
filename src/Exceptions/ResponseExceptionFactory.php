@@ -13,7 +13,7 @@ class ResponseExceptionFactory
     /**
      * Create a new exception instance.
      */
-    public static function create(ResponseInterface $response, ?Throwable $previous = null)
+    public static function create(ResponseInterface $response, Throwable $previous = null)
     {
         $statusCode = $response->statusCode();
 

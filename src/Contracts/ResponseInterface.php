@@ -30,7 +30,7 @@ interface ResponseInterface extends PsrResponseInterface
     /**
      * Return the json decoded response.
      */
-    public function json(?string $key = null): mixed;
+    public function json(string $key = null): mixed;
 
     /**
      * Throw an exception if the response is not successfull.
