@@ -13,7 +13,7 @@ A HTTP client for Farzai Package.
 You can install the package via composer:
 
 ```bash
-composer require farzai/transport:dev-main
+composer require farzai/transport
 ```
 
 ## Testing

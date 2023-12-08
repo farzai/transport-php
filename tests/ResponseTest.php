@@ -75,6 +75,21 @@ it('can get json body as array', function () {
     expect($response->json())->toBe(['foo' => 'bar']);
 });
 
+it('can get json body with dot notation', function () {
+    $stream = $this->createMock(StreamInterface::class);
+    $stream->method('getContents')->willReturn('{"foo":{"bar":"baz"}}');
+
+    $baseResponse = $this->createMock(ResponseInterface::class);
+    $baseResponse->method('getBody')->willReturn($stream);
+
+    $response = new Response(
+        $this->createMock(RequestInterface::class),
+        $baseResponse,
+    );
+
+    expect($response->json('foo.bar'))->toBe('baz');
+});
+
 it('cannot get json when invalid json format', function () {
     $stream = $this->createMock(StreamInterface::class);
     $stream->method('getContents')->willReturn('{"foo":"bar"');
@@ -116,7 +131,6 @@ it('can throw error if response status is not success', function () {
     $response = new Response(
         $this->createMock(RequestInterface::class),
         $baseResponse,
-
     );
 
     $response->throw();
