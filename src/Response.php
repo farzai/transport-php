@@ -74,7 +74,7 @@ class Response implements ResponseInterface
     /**
      * Return the json decoded response.
      */
-    public function json(string $key = null): mixed
+    public function json(?string $key = null): mixed
     {
         if (is_null($this->jsonDecoded)) {
             $this->jsonDecoded = @json_decode($this->body(), true) ?: false;
@@ -99,7 +99,7 @@ class Response implements ResponseInterface
      *
      * @throws \Psr\Http\Client\ClientExceptionInterface
      */
-    public function throw(callable $callback = null)
+    public function throw(?callable $callback = null)
     {
         $callback = $callback ?? function (ResponseInterface $response, ?\Exception $e) {
             if (! $this->isSuccessfull()) {
