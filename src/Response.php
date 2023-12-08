@@ -2,6 +2,7 @@
 
 namespace Farzai\Transport;
 
+use Farzai\Support\Arr;
 use Farzai\Transport\Contracts\ResponseInterface;
 use Farzai\Transport\Exceptions\ResponseExceptionFactory;
 use Farzai\Transport\Traits\PsrResponseTrait;
@@ -87,7 +88,7 @@ class Response implements ResponseInterface
             return $this->jsonDecoded;
         }
 
-        return $this->jsonDecoded[$key] ?? null;
+        return Arr::get($this->jsonDecoded, $key);
     }
 
     /**
