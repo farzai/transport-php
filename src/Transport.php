@@ -13,10 +13,6 @@ use Psr\Log\LoggerInterface as PsrLoggerInterface;
 
 class Transport implements PsrClientInterface
 {
-    const CLIENT_NAME = 'fz';
-
-    const VERSION = '1.2.0';
-
     /**
      * The client instance.
      */
@@ -145,6 +141,8 @@ class Transport implements PsrClientInterface
     {
         $request = $this->setupRequest($request);
 
+        $this->logger->info('[REQUEST] '.$request->getMethod().' '.$request->getUri());
+
         while ($this->retries >= 0) {
             try {
                 return $this->client->sendRequest($request);
@@ -155,18 +153,26 @@ class Transport implements PsrClientInterface
             $this->retries--;
 
             if ($this->retries >= 0) {
-                $this->logger->info('Retrying request...');
+                $this->logger->info('[RETRY] '.$this->retries.' retries left.');
             }
         }
+
+        $this->logger->error('[MAX RETRIES EXCEEDED]');
 
         throw ($e ?? new MaxRetriesExceededException('Max retries exceeded.'));
     }
 
+    /**
+     * Get the client instance.
+     */
     public function getPsrClient(): PsrClientInterface
     {
         return $this->client;
     }
 
+    /**
+     * Setup the request.
+     */
     public function setupRequest(PsrRequestInterface $request): PsrRequestInterface
     {
         $uri = $request->getUri();
@@ -180,6 +186,9 @@ class Transport implements PsrClientInterface
         return $request;
     }
 
+    /**
+     * Set the connection URI.
+     */
     public function setupConnectionUri(PsrRequestInterface $request): PsrRequestInterface
     {
         $uri = new Uri($this->uri);
@@ -189,10 +198,11 @@ class Transport implements PsrClientInterface
         return $request->withUri($uri);
     }
 
+    /**
+     * Decorate the request.
+     */
     public function decorateRequest(PsrRequestInterface $request): PsrRequestInterface
     {
-        $request = $request->withHeader('User-Agent', self::CLIENT_NAME.'/'.self::VERSION);
-
         foreach ($this->headers as $name => $value) {
             $request = $request->withHeader($name, $value);
         }

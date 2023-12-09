@@ -108,12 +108,18 @@ it('can set the retries', function () {
     expect($transport->getRetries())->toBe(3);
 });
 
+it('should throw an exception when retries is less than 0', function () {
+    $transport = TransportBuilder::make()->build();
+
+    $transport->setRetries(-1);
+})->throws(InvalidArgumentException::class);
+
 it('can get valid request options', function () {
     $transport = TransportBuilder::make()->build();
 
     $transport->setHeaders($expectHeaders = [
-        'Content-Type' => 'application/json',
-        'X-Tester' => 'Farzai',
+        'Content-Type' => ['application/json'],
+        'X-Tester' => ['Farzai'],
     ]);
 
     $transport->setUri('https://example.com');
@@ -123,8 +129,15 @@ it('can get valid request options', function () {
 
     expect('https://example.com/api/v1/test?foo=bar')->toBe($resultRequest->getUri()->__toString());
     expect('POST')->toBe($resultRequest->getMethod());
+    expect('https')->toBe($resultRequest->getUri()->getScheme());
 
-    foreach ($expectHeaders as $key => $value) {
-        expect($resultRequest->getHeaderLine($key))->toBe($value);
-    }
+    // Headers
+    expect('application/json')->toBe($resultRequest->getHeaderLine('Content-Type'));
+    expect('Farzai')->toBe($resultRequest->getHeaderLine('X-Tester'));
+
+    // Expect headers
+    expect(['Host' => ['example.com']] + $expectHeaders)->toBe($resultRequest->getHeaders());
+
+    // Query
+    expect('foo=bar')->toBe($resultRequest->getUri()->getQuery());
 });
