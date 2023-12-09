@@ -9,7 +9,7 @@ use Psr\Http\Client\ClientInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
-class TransportBuilder
+final class TransportBuilder
 {
     /**
      * The client instance.
@@ -39,6 +39,11 @@ class TransportBuilder
         return $this;
     }
 
+    public function getClient(): ?ClientInterface
+    {
+        return $this->client;
+    }
+
     /**
      * Set the logger
      */
@@ -49,16 +54,22 @@ class TransportBuilder
         return $this;
     }
 
+    public function getLogger(): ?LoggerInterface
+    {
+        return $this->logger;
+    }
+
     /**
      * Build the transport.
      */
     public function build(): Transport
     {
+        $logger = $this->logger ?? new NullLogger();
+        $client = $this->client ?? new GuzzleClient();
+
         return new Transport(
-            client: new LoggerAdapter(
-                client: $this->client ?? new GuzzleClient(),
-                logger: $this->logger ?? new NullLogger(),
-            ),
+            client: $client,
+            logger: $logger,
         );
     }
 }
