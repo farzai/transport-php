@@ -2,6 +2,14 @@
 
 All notable changes to `Transport` will be documented in this file.
 
+## 1.1.1 - 2023-12-11
+
+### What's Changed
+
+* Add request options by @parsilver in https://github.com/farzai/transport-php/pull/8
+
+**Full Changelog**: https://github.com/farzai/transport-php/compare/1.1.0...1.1.1
+
 ## 1.1.0 - 2023-12-08
 
 ### What's Changed
