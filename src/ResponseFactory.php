@@ -19,10 +19,4 @@ class ResponseFactory
     ): PsrResponseInterface {
         return new Response($statusCode, $headers, $body, $version, $reason);
     }
-
-    public static function toFarzaiResponse(
-        PsrResponseInterface $response
-    ): Response {
-        return new Response($response);
-    }
 }
