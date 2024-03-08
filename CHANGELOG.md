@@ -2,6 +2,16 @@
 
 All notable changes to `Transport` will be documented in this file.
 
+## 1.3.0 - 2024-03-08
+
+### What's Changed
+
+* Bump aglipanci/laravel-pint-action from 2.3.0 to 2.3.1 by @dependabot in https://github.com/farzai/transport-php/pull/9
+* Add response builder by @parsilver in https://github.com/farzai/transport-php/pull/11
+* Bump codecov/codecov-action from 3 to 4 by @dependabot in https://github.com/farzai/transport-php/pull/10
+
+**Full Changelog**: https://github.com/farzai/transport-php/compare/1.2.0...1.3.0
+
 ## 1.1.1 - 2023-12-11
 
 ### What's Changed
