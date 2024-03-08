@@ -1,6 +1,8 @@
 <?php
 
 use Farzai\Transport\Response;
+use Farzai\Transport\ResponseBuilder;
+use Farzai\Transport\ResponseFactory;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
@@ -11,10 +13,7 @@ it('can get the response status code', function () {
     $baseResponse = $this->createMock(ResponseInterface::class);
     $baseResponse->method('getStatusCode')->willReturn(200);
 
-    $response = new Response(
-        $baseRequest,
-        $baseResponse,
-    );
+    $response = new Response($baseRequest, $baseResponse);
 
     expect($response->statusCode())->toBe(200);
     expect($response->isSuccessfull())->toBeTrue();
@@ -29,7 +28,7 @@ it('can get the response body', function () {
 
     $response = new Response(
         $this->createMock(RequestInterface::class),
-        $baseResponse,
+        $baseResponse
     );
 
     expect($response->body())->toBe('{"foo":"bar"}');
@@ -37,14 +36,18 @@ it('can get the response body', function () {
 
 it('can get the response headers', function () {
     $baseResponse = $this->createMock(ResponseInterface::class);
-    $baseResponse->method('getHeaders')->willReturn(['Content-Type' => ['application/json']]);
+    $baseResponse
+        ->method('getHeaders')
+        ->willReturn(['Content-Type' => ['application/json']]);
 
     $response = new Response(
         $this->createMock(RequestInterface::class),
-        $baseResponse,
+        $baseResponse
     );
 
-    expect($response->headers())->toBe(['Content-Type' => ['application/json']]);
+    expect($response->headers())->toBe([
+        'Content-Type' => ['application/json'],
+    ]);
 });
 
 it('can check if the response is not successfull', function () {
@@ -53,7 +56,7 @@ it('can check if the response is not successfull', function () {
 
     $response = new Response(
         $this->createMock(RequestInterface::class),
-        $baseResponse,
+        $baseResponse
     );
 
     expect($response->isSuccessfull())->toBeFalse();
@@ -69,7 +72,7 @@ it('can get json body as array', function () {
 
     $response = new Response(
         $this->createMock(RequestInterface::class),
-        $baseResponse,
+        $baseResponse
     );
 
     expect($response->json())->toBe(['foo' => 'bar']);
@@ -84,7 +87,7 @@ it('can get json body with dot notation', function () {
 
     $response = new Response(
         $this->createMock(RequestInterface::class),
-        $baseResponse,
+        $baseResponse
     );
 
     expect($response->json('foo.bar'))->toBe('baz');
@@ -99,7 +102,7 @@ it('cannot get json when invalid json format', function () {
 
     $response = new Response(
         $this->createMock(RequestInterface::class),
-        $baseResponse,
+        $baseResponse
     );
 
     expect($response->json())->toBeNull();
@@ -114,7 +117,7 @@ it('can specify key name to get json body', function () {
 
     $response = new Response(
         $this->createMock(RequestInterface::class),
-        $baseResponse,
+        $baseResponse
     );
 
     expect($response->json('foo'))->toBe('bar');
@@ -130,7 +133,7 @@ it('can throw error if response status is not success', function () {
 
     $response = new Response(
         $this->createMock(RequestInterface::class),
-        $baseResponse,
+        $baseResponse
     );
 
     $response->throw();
@@ -142,10 +145,45 @@ it('should not throw error if response status is success', function () {
 
     $response = new Response(
         $this->createMock(RequestInterface::class),
-        $baseResponse,
+        $baseResponse
     );
 
     $response->throw();
 
     expect($response->isSuccessfull())->toBeTrue();
+});
+
+it('should create response via factory success', function () {
+    $response = ResponseFactory::create(
+        200,
+        ['Content-Type' => ['application/json']],
+        '{"foo":"bar"}'
+    );
+
+    expect($response->getStatusCode())->toBe(200);
+    expect($response->getBody()->getContents())->toBe('{"foo":"bar"}');
+    expect($response->getHeaders())->toBe([
+        'Content-Type' => ['application/json'],
+    ]);
+});
+
+it('should create response via builder success', function () {
+    $response = ResponseBuilder::create()
+        ->statusCode(200)
+        ->withHeader('Content-Type', 'application/json')
+        ->withHeaders(['Accept' => 'application/json'])
+        ->withBody('{"foo":"bar"}')
+        ->withVersion('1.1')
+        ->withReason('OK')
+        ->build();
+
+    expect($response->getStatusCode())->toBe(200);
+    expect($response->getBody()->getContents())->toBe('{"foo":"bar"}');
+    expect($response->getHeaders())->toBe([
+        'Content-Type' => ['application/json'],
+        'Accept' => ['application/json'],
+    ]);
+
+    expect($response->getProtocolVersion())->toBe('1.1');
+    expect($response->getReasonPhrase())->toBe('OK');
 });

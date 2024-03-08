@@ -35,7 +35,7 @@ interface ResponseInterface extends PsrResponseInterface
     /**
      * Throw an exception if the response is not successfull.
      *
-     * @param  callable|null  $callback Custom callback to throw an exception.
+     * @param  callable|null  $callback  Custom callback to throw an exception.
      *
      * @throws \Psr\Http\Client\ClientExceptionInterface
      */
