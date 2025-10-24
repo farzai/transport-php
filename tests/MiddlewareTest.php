@@ -114,7 +114,7 @@ describe('MiddlewareStack', function () {
             }
         };
 
-        $stack = new MiddlewareStack();
+        $stack = new MiddlewareStack;
         $result = $stack->push($middleware1);
         $stack->push($middleware2);
 
@@ -131,7 +131,7 @@ describe('MiddlewareStack', function () {
     });
 
     it('can create empty middleware stack', function () {
-        $stack = new MiddlewareStack();
+        $stack = new MiddlewareStack;
 
         $request = new Request('GET', 'https://example.com');
         $response = $stack->handle($request, fn () => new Response(200));

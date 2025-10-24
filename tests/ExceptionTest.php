@@ -7,7 +7,6 @@ use Farzai\Transport\Exceptions\ClientException;
 use Farzai\Transport\Exceptions\HttpException;
 use Farzai\Transport\Exceptions\NetworkException;
 use Farzai\Transport\Exceptions\RequestException;
-use Farzai\Transport\Exceptions\RetryExhaustedException;
 use Farzai\Transport\Exceptions\SerializationException;
 use Farzai\Transport\Exceptions\ServerException;
 use Farzai\Transport\Exceptions\TimeoutException;

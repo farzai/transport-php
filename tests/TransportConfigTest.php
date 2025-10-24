@@ -33,7 +33,7 @@ describe('TransportConfig', function () {
     it('can be created with custom values', function () {
         $logger = Mockery::mock(LoggerInterface::class);
         $retryStrategy = new FixedDelayStrategy(1000);
-        $retryCondition = new RetryCondition();
+        $retryCondition = new RetryCondition;
         $middleware = Mockery::mock(MiddlewareInterface::class);
 
         $config = new TransportConfig(
@@ -70,7 +70,7 @@ describe('TransportConfig', function () {
     });
 
     it('throws exception for invalid middleware', function () {
-        $invalidMiddleware = new stdClass();
+        $invalidMiddleware = new stdClass;
 
         expect(fn () => new TransportConfig($this->client, middlewares: [$invalidMiddleware]))
             ->toThrow(InvalidArgumentException::class);
@@ -135,7 +135,7 @@ describe('TransportConfig', function () {
     it('withRetries creates new instance with updated retry settings', function () {
         $config = new TransportConfig($this->client, maxRetries: 0);
         $newStrategy = new FixedDelayStrategy(2000);
-        $newCondition = new RetryCondition();
+        $newCondition = new RetryCondition;
 
         $newConfig = $config->withRetries(5, $newStrategy, $newCondition);
 
@@ -148,7 +148,7 @@ describe('TransportConfig', function () {
 
     it('withRetries can update max retries only', function () {
         $originalStrategy = new FixedDelayStrategy(1000);
-        $originalCondition = new RetryCondition();
+        $originalCondition = new RetryCondition;
         $config = new TransportConfig(
             $this->client,
             maxRetries: 3,

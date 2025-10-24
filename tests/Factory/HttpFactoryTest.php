@@ -167,28 +167,28 @@ describe('HttpFactory', function () {
     });
 
     it('auto-detects request factory when not provided', function () {
-        $factory = new HttpFactory();
+        $factory = new HttpFactory;
         $request = $factory->createRequest('GET', 'https://example.com');
 
         expect($request)->toBeInstanceOf(RequestInterface::class);
     });
 
     it('auto-detects response factory when not provided', function () {
-        $factory = new HttpFactory();
+        $factory = new HttpFactory;
         $response = $factory->createResponse(200);
 
         expect($response)->toBeInstanceOf(ResponseInterface::class);
     });
 
     it('auto-detects uri factory when not provided', function () {
-        $factory = new HttpFactory();
+        $factory = new HttpFactory;
         $uri = $factory->createUri('https://example.com');
 
         expect($uri)->toBeInstanceOf(UriInterface::class);
     });
 
     it('auto-detects stream factory when not provided', function () {
-        $factory = new HttpFactory();
+        $factory = new HttpFactory;
         $stream = $factory->createStream('test');
 
         expect($stream)->toBeInstanceOf(StreamInterface::class);
