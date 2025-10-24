@@ -159,6 +159,131 @@ describe('RequestBuilder fluent API', function () {
         expect(fn () => $builder->send())
             ->toThrow(RuntimeException::class, 'No transport instance available');
     });
+
+    it('can set multipart form data', function () {
+        $request = RequestBuilder::post('/upload')
+            ->withMultipart([
+                ['name' => 'username', 'contents' => 'john_doe'],
+                ['name' => 'email', 'contents' => 'john@example.com'],
+            ])
+            ->build();
+
+        expect($request->getHeaderLine('Content-Type'))->toContain('multipart/form-data');
+        expect($request->getBody()->getSize())->toBeGreaterThan(0);
+    });
+
+    it('can set multipart form data with simple array', function () {
+        $request = RequestBuilder::post('/upload')
+            ->withMultipart([
+                'username' => 'john_doe',
+                'email' => 'john@example.com',
+            ])
+            ->build();
+
+        expect($request->getHeaderLine('Content-Type'))->toContain('multipart/form-data');
+        expect($request->getBody()->getSize())->toBeGreaterThan(0);
+    });
+
+    it('can set multipart form data with custom boundary', function () {
+        $customBoundary = 'my-custom-boundary-123';
+        $request = RequestBuilder::post('/upload')
+            ->withMultipart([
+                'field' => 'value',
+            ], $customBoundary)
+            ->build();
+
+        expect($request->getHeaderLine('Content-Type'))->toBe("multipart/form-data; boundary={$customBoundary}");
+    });
+
+    it('can set multipart using builder', function () {
+        $builder = \Farzai\Transport\Multipart\MultipartStreamBuilder::create();
+        $builder->addField('username', 'john_doe');
+        $builder->addField('email', 'john@example.com');
+
+        $request = RequestBuilder::post('/upload')
+            ->withMultipartBuilder($builder)
+            ->build();
+
+        expect($request->getHeaderLine('Content-Type'))->toContain('multipart/form-data');
+        expect($request->getBody()->getSize())->toBeGreaterThan(0);
+    });
+
+    it('can upload file with withFile method', function () {
+        // Create a temporary file for testing
+        $tempFile = tempnam(sys_get_temp_dir(), 'test_upload_');
+        file_put_contents($tempFile, 'test file content');
+
+        try {
+            $request = RequestBuilder::post('/upload')
+                ->withFile('document', $tempFile)
+                ->build();
+
+            expect($request->getHeaderLine('Content-Type'))->toContain('multipart/form-data');
+            expect($request->getBody()->getSize())->toBeGreaterThan(0);
+
+            // Verify the body contains the file content
+            $bodyContent = $request->getBody()->getContents();
+            expect($bodyContent)->toContain('test file content');
+        } finally {
+            // Clean up
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+        }
+    });
+
+    it('can upload file with custom filename', function () {
+        // Create a temporary file for testing
+        $tempFile = tempnam(sys_get_temp_dir(), 'test_upload_');
+        file_put_contents($tempFile, 'test file content');
+
+        try {
+            $request = RequestBuilder::post('/upload')
+                ->withFile('document', $tempFile, 'custom-filename.txt')
+                ->build();
+
+            expect($request->getHeaderLine('Content-Type'))->toContain('multipart/form-data');
+
+            // Verify the body contains the custom filename
+            $bodyContent = $request->getBody()->getContents();
+            expect($bodyContent)->toContain('custom-filename.txt');
+        } finally {
+            // Clean up
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+        }
+    });
+
+    it('can upload file with additional fields', function () {
+        // Create a temporary file for testing
+        $tempFile = tempnam(sys_get_temp_dir(), 'test_upload_');
+        file_put_contents($tempFile, 'test file content');
+
+        try {
+            $request = RequestBuilder::post('/upload')
+                ->withFile('document', $tempFile, null, [
+                    'description' => 'My document',
+                    'category' => 'important',
+                ])
+                ->build();
+
+            expect($request->getHeaderLine('Content-Type'))->toContain('multipart/form-data');
+
+            // Verify the body contains both the file and additional fields
+            $bodyContent = $request->getBody()->getContents();
+            expect($bodyContent)->toContain('test file content');
+            expect($bodyContent)->toContain('description');
+            expect($bodyContent)->toContain('My document');
+            expect($bodyContent)->toContain('category');
+            expect($bodyContent)->toContain('important');
+        } finally {
+            // Clean up
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+        }
+    });
 });
 
 describe('RequestBuilder with Transport', function () {

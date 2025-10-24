@@ -126,6 +126,69 @@ describe('TransportBuilder', function () {
         $request = new \GuzzleHttp\Psr7\Request('GET', 'https://example.com');
         $transport->sendRequest($request);
     });
+
+    it('can enable cookie jar', function () {
+        $cookieJar = new \Farzai\Transport\Cookie\CookieJar;
+        $builder = TransportBuilder::make()->withCookieJar($cookieJar);
+
+        $transport = $builder->build();
+
+        expect($transport)->toBeInstanceOf(Transport::class);
+        // The cookie jar should be added via CookieMiddleware
+    });
+
+    it('can enable cookie jar with default instance', function () {
+        $builder = TransportBuilder::make()->withCookieJar();
+
+        $transport = $builder->build();
+
+        expect($transport)->toBeInstanceOf(Transport::class);
+        // Should create a new CookieJar internally
+    });
+
+    it('can enable cookies with shortcut method', function () {
+        $builder = TransportBuilder::make()->withCookies();
+
+        $transport = $builder->build();
+
+        expect($transport)->toBeInstanceOf(Transport::class);
+        // Should create a new CookieJar internally via withCookieJar()
+    });
+
+    it('handles cookies automatically when enabled', function () {
+        $client = Mockery::mock(ClientInterface::class);
+        $client->shouldReceive('sendRequest')
+            ->once()
+            ->with(Mockery::on(function ($request) {
+                // After receiving Set-Cookie, the next request should include it
+                return true;
+            }))
+            ->andReturn(new GuzzleResponse(200, [
+                'Set-Cookie' => 'session_id=abc123; Path=/',
+            ]));
+
+        $client->shouldReceive('sendRequest')
+            ->once()
+            ->with(Mockery::on(function ($request) {
+                // The second request should have the cookie
+                return $request->getHeaderLine('Cookie') === 'session_id=abc123';
+            }))
+            ->andReturn(new GuzzleResponse(200));
+
+        $transport = TransportBuilder::make()
+            ->setClient($client)
+            ->withCookies()
+            ->withoutDefaultMiddlewares()
+            ->build();
+
+        // First request - receives cookie
+        $request1 = new \GuzzleHttp\Psr7\Request('GET', 'https://example.com/login');
+        $transport->sendRequest($request1);
+
+        // Second request - should send cookie
+        $request2 = new \GuzzleHttp\Psr7\Request('GET', 'https://example.com/api');
+        $transport->sendRequest($request2);
+    });
 });
 
 describe('Transport', function () {

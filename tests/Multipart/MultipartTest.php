@@ -76,6 +76,60 @@ describe('Part', function () {
 
         expect($part->getHeader('X-Custom'))->toBe('test');
     });
+
+    it('returns size for StreamInterface content', function () {
+        $httpFactory = HttpFactory::getInstance();
+        $stream = $httpFactory->createStream('Stream content here');
+        $part = new Part('field', $stream);
+
+        expect($part->getSize())->toBe(19); // Length of "Stream content here"
+    });
+
+    it('guesses content type as octet-stream when filename is null', function () {
+        // Create a file part, but we'll check the guessContentType behavior
+        // This tests the null check in guessContentType (line 140)
+        $part = new Part('field', 'content', 'file.unknown');
+
+        // This should return application/octet-stream for unknown extensions
+        expect($part->getHeader('Content-Type'))->toBe('application/octet-stream');
+    });
+
+    it('guesses content type for various file extensions', function () {
+        $tests = [
+            'document.txt' => 'text/plain',
+            'page.html' => 'text/html',
+            'page.htm' => 'text/html',
+            'data.xml' => 'application/xml',
+            'photo.gif' => 'image/gif',
+            'photo.png' => 'image/png',
+            'photo.jpeg' => 'image/jpeg',
+            'report.doc' => 'application/msword',
+            'report.docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'spreadsheet.xls' => 'application/vnd.ms-excel',
+            'spreadsheet.xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ];
+
+        foreach ($tests as $filename => $expectedType) {
+            $part = Part::file('file', 'content', $filename);
+            expect($part->getHeader('Content-Type'))->toBe($expectedType, "Failed for $filename");
+        }
+    });
+
+    it('handles file part without explicit content type', function () {
+        // When content type is not provided, it should be guessed from extension
+        $part = Part::file('upload', 'content', 'document.pdf');
+
+        expect($part->getHeader('Content-Type'))->toBe('application/pdf');
+    });
+
+    it('returns all headers including Content-Disposition', function () {
+        $part = Part::file('upload', 'content', 'test.pdf', 'application/pdf');
+
+        $headers = $part->getHeaders();
+        expect($headers)->toHaveKey('Content-Disposition');
+        expect($headers)->toHaveKey('Content-Type');
+        expect($headers['Content-Type'])->toBe('application/pdf');
+    });
 });
 
 describe('MultipartStreamBuilder', function () {

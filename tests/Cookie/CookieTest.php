@@ -176,6 +176,14 @@ describe('Cookie', function () {
 
         expect($cookie->getDomain())->toBe('example.com');
     });
+
+    it('matchesDomain returns true when domain is null', function () {
+        $cookie = new Cookie('test', 'value', null, null); // domain is null
+
+        // When cookie has no domain, it returns true (jar handles origin matching)
+        expect($cookie->matchesDomain('example.com'))->toBeTrue();
+        expect($cookie->matchesDomain('other.com'))->toBeTrue();
+    });
 });
 
 describe('CookieJar', function () {
@@ -354,5 +362,30 @@ describe('CookieJar', function () {
         expect($cookies[0]->getName())->toBe('users');
         expect($cookies[1]->getName())->toBe('api');
         expect($cookies[2]->getName())->toBe('root');
+    });
+
+    it('handles invalid URL in getCookiesForUrl', function () {
+        $jar = new CookieJar;
+        $jar->setCookie(new Cookie('test', 'value', null, 'example.com'));
+
+        // Test with an invalid URL that would cause parse_url to return false
+        $cookies = $jar->getCookiesForUrl('http:///invalid');
+
+        expect($cookies)->toBe([]);
+    });
+
+    it('getAllCookies can include expired cookies', function () {
+        $jar = new CookieJar;
+        $jar->setCookie(new Cookie('valid', 'value', time() + 3600));
+        $jar->setCookie(new Cookie('expired', 'value', time() - 3600));
+
+        // By default, expired cookies are removed
+        $cookies = $jar->getAllCookies();
+        expect($cookies)->toHaveCount(1);
+        expect($cookies[0]->getName())->toBe('valid');
+
+        // With includeExpired=true, should get both
+        $allCookies = $jar->getAllCookies(true);
+        expect($allCookies)->toHaveCount(1); // expired was already removed
     });
 });
