@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Farzai\Transport;
 
 use Psr\Http\Message\ResponseInterface as PsrResponseInterface;
@@ -27,7 +29,7 @@ class ResponseBuilder
      */
     public static function create(): ResponseBuilder
     {
-        return new static();
+        return new static;
     }
 
     /**
@@ -110,7 +112,7 @@ class ResponseBuilder
      */
     public function build(): PsrResponseInterface
     {
-        return ResponseFactory::create(
+        return new \GuzzleHttp\Psr7\Response(
             $this->statusCode,
             $this->headers,
             $this->body,

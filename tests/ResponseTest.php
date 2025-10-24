@@ -1,189 +1,291 @@
 <?php
 
+declare(strict_types=1);
+
+use Farzai\Transport\Exceptions\JsonParseException;
 use Farzai\Transport\Response;
 use Farzai\Transport\ResponseBuilder;
-use Farzai\Transport\ResponseFactory;
 use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ResponseInterface as PsrResponseInterface;
 use Psr\Http\Message\StreamInterface;
 
-it('can get the response status code', function () {
-    $baseRequest = $this->createMock(RequestInterface::class);
+describe('Response', function () {
+    it('can get response status code', function () {
+        $request = Mockery::mock(RequestInterface::class);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getStatusCode')->andReturn(200);
 
-    $baseResponse = $this->createMock(ResponseInterface::class);
-    $baseResponse->method('getStatusCode')->willReturn(200);
+        $response = new Response($request, $psrResponse);
 
-    $response = new Response($baseRequest, $baseResponse);
+        expect($response->statusCode())->toBe(200)
+            ->and($response->isSuccessful())->toBeTrue();
+    });
 
-    expect($response->statusCode())->toBe(200);
-    expect($response->isSuccessfull())->toBeTrue();
+    it('can get response body', function () {
+        $request = Mockery::mock(RequestInterface::class);
+
+        $stream = Mockery::mock(StreamInterface::class);
+        $stream->shouldReceive('getContents')->andReturn('{"foo":"bar"}');
+
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getBody')->andReturn($stream);
+
+        $response = new Response($request, $psrResponse);
+
+        expect($response->body())->toBe('{"foo":"bar"}');
+    });
+
+    it('can get response headers', function () {
+        $request = Mockery::mock(RequestInterface::class);
+
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getHeaders')
+            ->andReturn(['Content-Type' => ['application/json']]);
+
+        $response = new Response($request, $psrResponse);
+
+        expect($response->headers())->toBe([
+            'Content-Type' => ['application/json'],
+        ]);
+    });
+
+    it('identifies successful 2xx responses', function () {
+        $request = Mockery::mock(RequestInterface::class);
+
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getStatusCode')->andReturn(200);
+        $response = new Response($request, $psrResponse);
+        expect($response->isSuccessful())->toBeTrue();
+    });
+
+    it('identifies edge of successful range (299)', function () {
+        $request = Mockery::mock(RequestInterface::class);
+
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getStatusCode')->andReturn(299);
+        $response = new Response($request, $psrResponse);
+        expect($response->isSuccessful())->toBeTrue();
+    });
+
+    it('identifies 4xx as unsuccessful', function () {
+        $request = Mockery::mock(RequestInterface::class);
+
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getStatusCode')->andReturn(400);
+        $response = new Response($request, $psrResponse);
+        expect($response->isSuccessful())->toBeFalse();
+    });
+
+    it('identifies 5xx as unsuccessful', function () {
+        $request = Mockery::mock(RequestInterface::class);
+
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getStatusCode')->andReturn(500);
+        $response = new Response($request, $psrResponse);
+        expect($response->isSuccessful())->toBeFalse();
+    });
 });
 
-it('can get the response body', function () {
-    $stream = $this->createMock(StreamInterface::class);
-    $stream->method('getContents')->willReturn('{"foo":"bar"}');
+describe('Response JSON parsing', function () {
+    it('can parse valid JSON', function () {
+        $request = Mockery::mock(RequestInterface::class);
 
-    $baseResponse = $this->createMock(ResponseInterface::class);
-    $baseResponse->method('getBody')->willReturn($stream);
+        $stream = Mockery::mock(StreamInterface::class);
+        $stream->shouldReceive('getContents')->andReturn('{"foo":"bar"}');
 
-    $response = new Response(
-        $this->createMock(RequestInterface::class),
-        $baseResponse
-    );
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getBody')->andReturn($stream);
 
-    expect($response->body())->toBe('{"foo":"bar"}');
+        $response = new Response($request, $psrResponse);
+
+        expect($response->json())->toBe(['foo' => 'bar']);
+    });
+
+    it('can get nested JSON values using dot notation', function () {
+        $request = Mockery::mock(RequestInterface::class);
+
+        $stream = Mockery::mock(StreamInterface::class);
+        $stream->shouldReceive('getContents')->andReturn('{"user":{"name":"John","address":{"city":"NYC"}}}');
+
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getBody')->andReturn($stream);
+
+        $response = new Response($request, $psrResponse);
+
+        expect($response->json('user.name'))->toBe('John')
+            ->and($response->json('user.address.city'))->toBe('NYC');
+    });
+
+    it('throws exception on invalid JSON', function () {
+        $request = Mockery::mock(RequestInterface::class);
+
+        $stream = Mockery::mock(StreamInterface::class);
+        $stream->shouldReceive('getContents')->andReturn('{"foo":"bar"');
+
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getBody')->andReturn($stream);
+
+        $response = new Response($request, $psrResponse);
+
+        $response->json();
+    })->throws(JsonParseException::class);
+
+    it('can safely parse JSON with jsonOrNull', function () {
+        $request = Mockery::mock(RequestInterface::class);
+
+        $stream = Mockery::mock(StreamInterface::class);
+        $stream->shouldReceive('getContents')->andReturn('{"foo":"bar"');
+
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getBody')->andReturn($stream);
+
+        $response = new Response($request, $psrResponse);
+
+        expect($response->jsonOrNull())->toBeNull();
+    });
+
+    it('returns null for empty body', function () {
+        $request = Mockery::mock(RequestInterface::class);
+
+        $stream = Mockery::mock(StreamInterface::class);
+        $stream->shouldReceive('getContents')->andReturn('');
+
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getBody')->andReturn($stream);
+
+        $response = new Response($request, $psrResponse);
+
+        expect($response->json())->toBeNull();
+    });
+
+    it('can convert response to array', function () {
+        $request = Mockery::mock(RequestInterface::class);
+
+        $stream = Mockery::mock(StreamInterface::class);
+        $stream->shouldReceive('getContents')->andReturn('{"foo":"bar","items":[1,2,3]}');
+
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getBody')->andReturn($stream);
+
+        $response = new Response($request, $psrResponse);
+
+        expect($response->toArray())->toBe([
+            'foo' => 'bar',
+            'items' => [1, 2, 3],
+        ]);
+    });
+
+    it('caches parsed JSON', function () {
+        $request = Mockery::mock(RequestInterface::class);
+
+        $stream = Mockery::mock(StreamInterface::class);
+        $stream->shouldReceive('getContents')->once()->andReturn('{"foo":"bar"}');
+
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getBody')->once()->andReturn($stream);
+
+        $response = new Response($request, $psrResponse);
+
+        // First call parses
+        $response->json();
+        // Second call should use cache
+        $result = $response->json();
+
+        expect($result)->toBe(['foo' => 'bar']);
+    });
 });
 
-it('can get the response headers', function () {
-    $baseResponse = $this->createMock(ResponseInterface::class);
-    $baseResponse
-        ->method('getHeaders')
-        ->willReturn(['Content-Type' => ['application/json']]);
+describe('Response error handling', function () {
+    it('can throw exception on non-successful response', function () {
+        $request = Mockery::mock(RequestInterface::class);
 
-    $response = new Response(
-        $this->createMock(RequestInterface::class),
-        $baseResponse
-    );
+        $stream = Mockery::mock(StreamInterface::class);
+        $stream->shouldReceive('getContents')->andReturn('{"error":"Not found"}');
 
-    expect($response->headers())->toBe([
-        'Content-Type' => ['application/json'],
-    ]);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getStatusCode')->andReturn(404);
+        $psrResponse->shouldReceive('getBody')->andReturn($stream);
+
+        $response = new Response($request, $psrResponse);
+
+        $response->throw();
+    })->throws(\GuzzleHttp\Exception\BadResponseException::class);
+
+    it('does not throw on successful response', function () {
+        $request = Mockery::mock(RequestInterface::class);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getStatusCode')->andReturn(200);
+
+        $response = new Response($request, $psrResponse);
+
+        $result = $response->throw();
+
+        expect($result)->toBe($response);
+    });
+
+    it('can use custom error callback', function () {
+        $request = Mockery::mock(RequestInterface::class);
+
+        $stream = Mockery::mock(StreamInterface::class);
+        $stream->shouldReceive('getContents')->andReturn('{"error":"Not found"}');
+
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getStatusCode')->andReturn(404);
+        $psrResponse->shouldReceive('getBody')->andReturn($stream);
+
+        $response = new Response($request, $psrResponse);
+
+        $response->throw(function ($resp, $exception) {
+            if ($resp->statusCode() === 404) {
+                throw new \RuntimeException('Custom not found error');
+            }
+        });
+    })->throws(\RuntimeException::class, 'Custom not found error');
 });
 
-it('can check if the response is not successfull', function () {
-    $baseResponse = $this->createMock(ResponseInterface::class);
-    $baseResponse->method('getStatusCode')->willReturn(400);
+describe('ResponseBuilder', function () {
+    it('can build PSR response', function () {
+        $response = ResponseBuilder::create()
+            ->statusCode(200)
+            ->withHeader('Content-Type', 'application/json')
+            ->withBody('{"success":true}')
+            ->build();
 
-    $response = new Response(
-        $this->createMock(RequestInterface::class),
-        $baseResponse
-    );
+        expect($response->getStatusCode())->toBe(200)
+            ->and($response->getBody()->getContents())->toBe('{"success":true}')
+            ->and($response->getHeaders())->toBe([
+                'Content-Type' => ['application/json'],
+            ]);
+    });
 
-    expect($response->isSuccessfull())->toBeFalse();
-    expect($response->statusCode())->toBe(400);
+    it('can build response with multiple headers', function () {
+        $response = ResponseBuilder::create()
+            ->statusCode(201)
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+                'X-Request-ID' => '12345',
+            ])
+            ->withBody('{"id":123}')
+            ->build();
+
+        expect($response->getStatusCode())->toBe(201)
+            ->and($response->getHeaders())->toHaveKey('Content-Type')
+            ->and($response->getHeaders())->toHaveKey('X-Request-ID');
+    });
+
+    it('can build response with version and reason', function () {
+        $response = ResponseBuilder::create()
+            ->statusCode(404)
+            ->withVersion('1.1')
+            ->withReason('Not Found')
+            ->build();
+
+        expect($response->getStatusCode())->toBe(404)
+            ->and($response->getProtocolVersion())->toBe('1.1')
+            ->and($response->getReasonPhrase())->toBe('Not Found');
+    });
 });
 
-it('can get json body as array', function () {
-    $stream = $this->createMock(StreamInterface::class);
-    $stream->method('getContents')->willReturn('{"foo":"bar"}');
-
-    $baseResponse = $this->createMock(ResponseInterface::class);
-    $baseResponse->method('getBody')->willReturn($stream);
-
-    $response = new Response(
-        $this->createMock(RequestInterface::class),
-        $baseResponse
-    );
-
-    expect($response->json())->toBe(['foo' => 'bar']);
-});
-
-it('can get json body with dot notation', function () {
-    $stream = $this->createMock(StreamInterface::class);
-    $stream->method('getContents')->willReturn('{"foo":{"bar":"baz"}}');
-
-    $baseResponse = $this->createMock(ResponseInterface::class);
-    $baseResponse->method('getBody')->willReturn($stream);
-
-    $response = new Response(
-        $this->createMock(RequestInterface::class),
-        $baseResponse
-    );
-
-    expect($response->json('foo.bar'))->toBe('baz');
-});
-
-it('cannot get json when invalid json format', function () {
-    $stream = $this->createMock(StreamInterface::class);
-    $stream->method('getContents')->willReturn('{"foo":"bar"');
-
-    $baseResponse = $this->createMock(ResponseInterface::class);
-    $baseResponse->method('getBody')->willReturn($stream);
-
-    $response = new Response(
-        $this->createMock(RequestInterface::class),
-        $baseResponse
-    );
-
-    expect($response->json())->toBeNull();
-});
-
-it('can specify key name to get json body', function () {
-    $stream = $this->createMock(StreamInterface::class);
-    $stream->method('getContents')->willReturn('{"foo":"bar"}');
-
-    $baseResponse = $this->createMock(ResponseInterface::class);
-    $baseResponse->method('getBody')->willReturn($stream);
-
-    $response = new Response(
-        $this->createMock(RequestInterface::class),
-        $baseResponse
-    );
-
-    expect($response->json('foo'))->toBe('bar');
-});
-
-it('can throw error if response status is not success', function () {
-    $stream = $this->createMock(StreamInterface::class);
-    $stream->method('getContents')->willReturn('{"error": "invalid_request"}');
-
-    $baseResponse = $this->createMock(ResponseInterface::class);
-    $baseResponse->method('getStatusCode')->willReturn(400);
-    $baseResponse->method('getBody')->willReturn($stream);
-
-    $response = new Response(
-        $this->createMock(RequestInterface::class),
-        $baseResponse
-    );
-
-    $response->throw();
-})->throws(\GuzzleHttp\Exception\BadResponseException::class);
-
-it('should not throw error if response status is success', function () {
-    $baseResponse = $this->createMock(ResponseInterface::class);
-    $baseResponse->method('getStatusCode')->willReturn(200);
-
-    $response = new Response(
-        $this->createMock(RequestInterface::class),
-        $baseResponse
-    );
-
-    $response->throw();
-
-    expect($response->isSuccessfull())->toBeTrue();
-});
-
-it('should create response via factory success', function () {
-    $response = ResponseFactory::create(
-        200,
-        ['Content-Type' => ['application/json']],
-        '{"foo":"bar"}'
-    );
-
-    expect($response->getStatusCode())->toBe(200);
-    expect($response->getBody()->getContents())->toBe('{"foo":"bar"}');
-    expect($response->getHeaders())->toBe([
-        'Content-Type' => ['application/json'],
-    ]);
-});
-
-it('should create response via builder success', function () {
-    $response = ResponseBuilder::create()
-        ->statusCode(200)
-        ->withHeader('Content-Type', 'application/json')
-        ->withHeaders(['Accept' => 'application/json'])
-        ->withBody('{"foo":"bar"}')
-        ->withVersion('1.1')
-        ->withReason('OK')
-        ->build();
-
-    expect($response->getStatusCode())->toBe(200);
-    expect($response->getBody()->getContents())->toBe('{"foo":"bar"}');
-    expect($response->getHeaders())->toBe([
-        'Content-Type' => ['application/json'],
-        'Accept' => ['application/json'],
-    ]);
-
-    expect($response->getProtocolVersion())->toBe('1.1');
-    expect($response->getReasonPhrase())->toBe('OK');
+afterEach(function () {
+    Mockery::close();
 });

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Farzai\Transport\Exceptions;
 
 use Farzai\Transport\Contracts\ResponseInterface;

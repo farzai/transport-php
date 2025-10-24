@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Farzai\Transport;
 
-use Farzai\Transport\Exceptions\MaxRetriesExceededException;
+use Farzai\Transport\Contracts\ResponseInterface;
+use Farzai\Transport\Middleware\MiddlewareStack;
 use GuzzleHttp\Psr7\Uri;
 use Psr\Http\Client\ClientInterface as PsrClientInterface;
 use Psr\Http\Message\RequestInterface as PsrRequestInterface;
@@ -13,71 +14,134 @@ use Psr\Log\LoggerInterface as PsrLoggerInterface;
 
 class Transport implements PsrClientInterface
 {
-    /**
-     * The client instance.
-     */
-    private PsrClientInterface $client;
+    private readonly MiddlewareStack $middlewareStack;
 
     /**
-     * The logger instance.
+     * Create a new transport instance.
      */
-    private PsrLoggerInterface $logger;
-
-    /**
-     * The base URI.
-     */
-    private string $uri = '/';
-
-    /**
-     * The headers.
-     *
-     * @var array<string, string>
-     */
-    private array $headers = [];
-
-    private int $timeout = 30;
-
-    private int $retries = 0;
-
-    /**
-     * Create a new client instance.
-     */
-    public function __construct(PsrClientInterface $client, PsrLoggerInterface $logger)
-    {
-        $this->client = $client;
-        $this->logger = $logger;
+    public function __construct(
+        private readonly TransportConfig $config
+    ) {
+        $this->middlewareStack = new MiddlewareStack($this->config->middlewares);
     }
 
     /**
-     * Set the base URI.
+     * Send a PSR request and get a PSR response (for PSR-18 compatibility).
      */
-    public function setUri(string $uri): self
+    public function sendRequest(PsrRequestInterface $request): PsrResponseInterface
     {
-        $this->uri = $uri;
+        $request = $this->prepareRequest($request);
 
-        return $this;
+        $response = $this->middlewareStack->handle(
+            request: $request,
+            core: fn (PsrRequestInterface $req) => $this->config->client->sendRequest($req)
+        );
+
+        return $this->wrapResponse($request, $response);
     }
 
     /**
-     * Get the URI.
+     * Send a request and get our custom Response with helpers.
+     */
+    public function send(PsrRequestInterface $request): ResponseInterface
+    {
+        $psrResponse = $this->sendRequest($request);
+
+        if ($psrResponse instanceof ResponseInterface) {
+            return $psrResponse;
+        }
+
+        return new Response($request, $psrResponse);
+    }
+
+    /**
+     * Create a fluent request builder.
+     */
+    public function request(): RequestBuilder
+    {
+        return new RequestBuilder($this);
+    }
+
+    /**
+     * Convenience method for GET request.
+     */
+    public function get(string $uri): RequestBuilder
+    {
+        return $this->request()->method('GET')->uri($uri);
+    }
+
+    /**
+     * Convenience method for POST request.
+     */
+    public function post(string $uri): RequestBuilder
+    {
+        return $this->request()->method('POST')->uri($uri);
+    }
+
+    /**
+     * Convenience method for PUT request.
+     */
+    public function put(string $uri): RequestBuilder
+    {
+        return $this->request()->method('PUT')->uri($uri);
+    }
+
+    /**
+     * Convenience method for PATCH request.
+     */
+    public function patch(string $uri): RequestBuilder
+    {
+        return $this->request()->method('PATCH')->uri($uri);
+    }
+
+    /**
+     * Convenience method for DELETE request.
+     */
+    public function delete(string $uri): RequestBuilder
+    {
+        return $this->request()->method('DELETE')->uri($uri);
+    }
+
+    /**
+     * Get the underlying PSR-18 client.
+     */
+    public function getPsrClient(): PsrClientInterface
+    {
+        return $this->config->client;
+    }
+
+    /**
+     * Get the logger.
+     */
+    public function getLogger(): PsrLoggerInterface
+    {
+        return $this->config->logger;
+    }
+
+    /**
+     * Get the configuration.
+     */
+    public function getConfig(): TransportConfig
+    {
+        return $this->config;
+    }
+
+    /**
+     * Get the base URI.
      */
     public function getUri(): string
     {
-        return $this->uri;
+        return $this->config->baseUri;
     }
 
     /**
-     * Set the timeout.
+     * Get the default headers.
+     *
+     * @return array<string, string>
      */
-    public function setTimeout(int $timeout): self
+    public function getHeaders(): array
     {
-        if ($timeout < 0) {
-            throw new \InvalidArgumentException('Timeout must be greater than or equal to 0.');
-        }
-
-        $this->timeout = $timeout;
-
-        return $this;
+        return $this->config->headers;
     }
 
     /**
@@ -85,128 +149,51 @@ class Transport implements PsrClientInterface
      */
     public function getTimeout(): int
     {
-        return $this->timeout;
+        return $this->config->timeout;
     }
 
     /**
-     * Set the retries.
-     */
-    public function setRetries(int $retries): self
-    {
-        if ($retries < 0) {
-            throw new \InvalidArgumentException('Retries must be greater than or equal to 0.');
-        }
-
-        $this->retries = $retries;
-
-        return $this;
-    }
-
-    /**
-     * Get the retries.
+     * Get the max retries.
      */
     public function getRetries(): int
     {
-        return $this->retries;
+        return $this->config->maxRetries;
     }
 
     /**
-     * Set the headers.
-     *
-     * @param  array<string, string>  $headers
+     * Prepare the request by adding base URI and default headers.
      */
-    public function setHeaders(array $headers): self
-    {
-        $this->headers = array_merge($this->headers, $headers);
-
-        return $this;
-    }
-
-    /**
-     * Get the headers.
-     *
-     * @return array<string, string>
-     */
-    public function getHeaders(): array
-    {
-        return $this->headers;
-    }
-
-    public function getLogger(): PsrLoggerInterface
-    {
-        return $this->logger;
-    }
-
-    public function sendRequest(PsrRequestInterface $request): PsrResponseInterface
-    {
-        $request = $this->setupRequest($request);
-
-        $this->logger->info('[REQUEST] '.$request->getMethod().' '.$request->getUri());
-
-        while ($this->retries >= 0) {
-            try {
-                return $this->client->sendRequest($request);
-            } catch (\Throwable $e) {
-                $this->logger->error($e->getMessage());
-            }
-
-            $this->retries--;
-
-            if ($this->retries >= 0) {
-                $this->logger->info('[RETRY] '.$this->retries.' retries left.');
-            }
-        }
-
-        $this->logger->error('[MAX RETRIES EXCEEDED]');
-
-        throw ($e ?? new MaxRetriesExceededException('Max retries exceeded.'));
-    }
-
-    /**
-     * Get the client instance.
-     */
-    public function getPsrClient(): PsrClientInterface
-    {
-        return $this->client;
-    }
-
-    /**
-     * Setup the request.
-     */
-    public function setupRequest(PsrRequestInterface $request): PsrRequestInterface
+    private function prepareRequest(PsrRequestInterface $request): PsrRequestInterface
     {
         $uri = $request->getUri();
 
-        if (empty($uri->getHost())) {
-            $request = $this->setupConnectionUri($request);
+        // If no host, prepend base URI
+        if (empty($uri->getHost()) && ! empty($this->config->baseUri)) {
+            $baseUri = new Uri($this->config->baseUri);
+            $uri = $baseUri->withPath($baseUri->getPath().$uri->getPath());
+            $uri = $uri->withQuery($uri->getQuery());
+            $request = $request->withUri($uri);
         }
 
-        $request = $this->decorateRequest($request);
+        // Add default headers
+        foreach ($this->config->headers as $name => $value) {
+            if (! $request->hasHeader($name)) {
+                $request = $request->withHeader($name, $value);
+            }
+        }
 
         return $request;
     }
 
     /**
-     * Set the connection URI.
+     * Wrap PSR response in our custom Response.
      */
-    public function setupConnectionUri(PsrRequestInterface $request): PsrRequestInterface
+    private function wrapResponse(PsrRequestInterface $request, PsrResponseInterface $response): ResponseInterface
     {
-        $uri = new Uri($this->uri);
-        $uri = $uri->withPath($uri->getPath().$request->getUri()->getPath());
-        $uri = $uri->withQuery($request->getUri()->getQuery());
-
-        return $request->withUri($uri);
-    }
-
-    /**
-     * Decorate the request.
-     */
-    public function decorateRequest(PsrRequestInterface $request): PsrRequestInterface
-    {
-        foreach ($this->headers as $name => $value) {
-            $request = $request->withHeader($name, $value);
+        if ($response instanceof ResponseInterface) {
+            return $response;
         }
 
-        return $request;
+        return new Response($request, $response);
     }
 }
