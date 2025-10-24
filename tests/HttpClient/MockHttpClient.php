@@ -93,7 +93,9 @@ class MockHttpClient extends PHPUnitTestCase implements PsrClientInterface
         $client = static::new();
 
         if (is_array($contents)) {
-            $contents = json_encode($contents);
+            // Use the serializer for consistent error handling
+            $serializer = \Farzai\Transport\Serialization\SerializerFactory::createDefault();
+            $contents = $serializer->encode($contents);
         }
 
         return $client->createResponse($statusCode, $contents, $headers);
