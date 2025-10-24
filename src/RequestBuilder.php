@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Farzai\Transport;
 
 use Farzai\Transport\Contracts\ResponseInterface;
+use Farzai\Transport\Contracts\SerializerInterface;
+use Farzai\Transport\Serialization\SerializerFactory;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Uri;
 use Psr\Http\Message\RequestInterface;
@@ -26,10 +28,13 @@ class RequestBuilder
 
     private ?Transport $transport = null;
 
-    public function __construct(?Transport $transport = null)
+    private SerializerInterface $serializer;
+
+    public function __construct(?Transport $transport = null, ?SerializerInterface $serializer = null)
     {
         $this->transport = $transport;
         $this->uri = new Uri;
+        $this->serializer = $serializer ?? SerializerFactory::createDefault();
     }
 
     /**
@@ -93,12 +98,19 @@ class RequestBuilder
 
     /**
      * Set JSON body.
+     *
+     * Uses the injected serializer for encoding with proper error handling.
+     *
+     * @param  mixed  $data  The data to encode as JSON
+     * @return self
+     *
+     * @throws \Farzai\Transport\Exceptions\JsonEncodeException When encoding fails
      */
     public function withJson(mixed $data): self
     {
         $clone = clone $this;
-        $clone->body = json_encode($data);
-        $clone->headers['Content-Type'] = 'application/json';
+        $clone->body = $this->serializer->encode($data);
+        $clone->headers['Content-Type'] = $this->serializer->getContentType();
 
         return $clone;
     }

@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Farzai\Transport;
 
-use Farzai\Support\Arr;
 use Farzai\Transport\Contracts\ResponseInterface;
+use Farzai\Transport\Contracts\SerializerInterface;
 use Farzai\Transport\Exceptions\ResponseExceptionFactory;
+use Farzai\Transport\Serialization\SerializerFactory;
 use Psr\Http\Message\RequestInterface as PsrRequestInterface;
 use Psr\Http\Message\ResponseInterface as PsrResponseInterface;
 use Psr\Http\Message\StreamInterface;
@@ -19,14 +20,22 @@ class Response implements ResponseInterface
 
     protected bool $jsonParsed = false;
 
+    protected SerializerInterface $serializer;
+
     /**
      * Create a new response instance.
+     *
+     * @param  PsrRequestInterface  $request  The PSR-7 request
+     * @param  PsrResponseInterface  $response  The PSR-7 response
+     * @param  SerializerInterface|null  $serializer  The serializer (defaults to JSON)
      */
     public function __construct(
         protected PsrRequestInterface $request,
-        protected PsrResponseInterface $response
+        protected PsrResponseInterface $response,
+        ?SerializerInterface $serializer = null
     ) {
-        //
+        // Use dependency injection with a sensible default
+        $this->serializer = $serializer ?? SerializerFactory::createDefault();
     }
 
     /**
@@ -70,48 +79,43 @@ class Response implements ResponseInterface
     /**
      * Return the json decoded response.
      *
+     * Uses the injected serializer (defaults to JsonSerializer with modern error handling).
+     *
+     * @param  string|null  $key  Optional dot-notation key path (e.g., "user.name")
+     * @return mixed The decoded JSON data
+     *
      * @throws \Farzai\Transport\Exceptions\JsonParseException
      */
     public function json(?string $key = null): mixed
     {
+        // Use caching to avoid re-parsing on subsequent calls
         if (! $this->jsonParsed) {
             $body = $this->body();
 
-            if ($body === '') {
-                $this->jsonDecoded = null;
-                $this->jsonParsed = true;
-
-                return null;
-            }
-
-            $this->jsonDecoded = json_decode($body, true);
-
-            $jsonError = json_last_error();
-            if ($jsonError !== JSON_ERROR_NONE) {
-                throw new \Farzai\Transport\Exceptions\JsonParseException(
-                    message: sprintf('Failed to parse JSON: %s', json_last_error_msg()),
-                    jsonString: $body,
-                    jsonErrorCode: $jsonError,
-                    jsonErrorMessage: json_last_error_msg()
-                );
-            }
-
+            // Delegate to the injected serializer
+            $this->jsonDecoded = $this->serializer->decode($body);
             $this->jsonParsed = true;
         }
 
-        if ($this->jsonDecoded === null) {
-            return null;
-        }
-
-        if (is_null($key)) {
+        // If no key specified, return the full decoded data
+        if ($key === null) {
             return $this->jsonDecoded;
         }
 
-        return Arr::get($this->jsonDecoded, $key);
+        // If decoder already handled key extraction, don't do it again
+        // This branch is for backward compatibility when jsonDecoded is already an array
+        if (is_array($this->jsonDecoded)) {
+            return \Farzai\Support\Arr::get($this->jsonDecoded, $key);
+        }
+
+        return null;
     }
 
     /**
      * Get the JSON decoded response, returning null instead of throwing on parse error.
+     *
+     * @param  string|null  $key  Optional dot-notation key path
+     * @return mixed The decoded data or null on failure
      */
     public function jsonOrNull(?string $key = null): mixed
     {
@@ -222,7 +226,7 @@ class Response implements ResponseInterface
 
     public function withProtocolVersion(string $version): static
     {
-        return new static($this->request, $this->response->withProtocolVersion($version));
+        return new static($this->request, $this->response->withProtocolVersion($version), $this->serializer);
     }
 
     /**
@@ -230,7 +234,7 @@ class Response implements ResponseInterface
      */
     public function withHeader(string $name, $value): static
     {
-        return new static($this->request, $this->response->withHeader($name, $value));
+        return new static($this->request, $this->response->withHeader($name, $value), $this->serializer);
     }
 
     /**
@@ -238,21 +242,31 @@ class Response implements ResponseInterface
      */
     public function withAddedHeader(string $name, $value): static
     {
-        return new static($this->request, $this->response->withAddedHeader($name, $value));
+        return new static($this->request, $this->response->withAddedHeader($name, $value), $this->serializer);
     }
 
     public function withoutHeader(string $name): static
     {
-        return new static($this->request, $this->response->withoutHeader($name));
+        return new static($this->request, $this->response->withoutHeader($name), $this->serializer);
     }
 
     public function withBody(StreamInterface $body): static
     {
-        return new static($this->request, $this->response->withBody($body));
+        return new static($this->request, $this->response->withBody($body), $this->serializer);
     }
 
     public function withStatus(int $code, string $reasonPhrase = ''): static
     {
-        return new static($this->request, $this->response->withStatus($code, $reasonPhrase));
+        return new static($this->request, $this->response->withStatus($code, $reasonPhrase), $this->serializer);
+    }
+
+    /**
+     * Get the serializer instance.
+     *
+     * @return SerializerInterface The current serializer
+     */
+    public function getSerializer(): SerializerInterface
+    {
+        return $this->serializer;
     }
 }
