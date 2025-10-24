@@ -103,7 +103,7 @@ foreach ($clients as $name => $class) {
     echo "  {$name}: {$status}\n";
 
     if (! $available) {
-        echo "    Install with: composer require ";
+        echo '    Install with: composer require ';
         echo $name === 'guzzle' ? 'guzzlehttp/guzzle' : 'symfony/http-client';
         echo "\n";
     }
@@ -116,7 +116,8 @@ echo str_repeat('-', 50)."\n";
 
 try {
     // Create a simple logger
-    $logger = new class extends \Psr\Log\AbstractLogger {
+    $logger = new class extends \Psr\Log\AbstractLogger
+    {
         public function log($level, $message, array $context = []): void
         {
             $contextStr = ! empty($context) ? ' '.json_encode($context) : '';

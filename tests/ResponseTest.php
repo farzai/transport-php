@@ -286,6 +286,176 @@ describe('ResponseBuilder', function () {
     });
 });
 
+describe('Response PSR-7 implementation', function () {
+    it('implements getStatusCode', function () {
+        $request = Mockery::mock(RequestInterface::class);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getStatusCode')->andReturn(200);
+
+        $response = new Response($request, $psrResponse);
+
+        expect($response->getStatusCode())->toBe(200);
+    });
+
+    it('implements getReasonPhrase', function () {
+        $request = Mockery::mock(RequestInterface::class);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getReasonPhrase')->andReturn('OK');
+
+        $response = new Response($request, $psrResponse);
+
+        expect($response->getReasonPhrase())->toBe('OK');
+    });
+
+    it('implements getProtocolVersion', function () {
+        $request = Mockery::mock(RequestInterface::class);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getProtocolVersion')->andReturn('1.1');
+
+        $response = new Response($request, $psrResponse);
+
+        expect($response->getProtocolVersion())->toBe('1.1');
+    });
+
+    it('implements hasHeader', function () {
+        $request = Mockery::mock(RequestInterface::class);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('hasHeader')->with('Content-Type')->andReturn(true);
+
+        $response = new Response($request, $psrResponse);
+
+        expect($response->hasHeader('Content-Type'))->toBeTrue();
+    });
+
+    it('implements getHeader', function () {
+        $request = Mockery::mock(RequestInterface::class);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getHeader')->with('Content-Type')->andReturn(['application/json']);
+
+        $response = new Response($request, $psrResponse);
+
+        expect($response->getHeader('Content-Type'))->toBe(['application/json']);
+    });
+
+    it('implements getHeaderLine', function () {
+        $request = Mockery::mock(RequestInterface::class);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getHeaderLine')->with('Content-Type')->andReturn('application/json');
+
+        $response = new Response($request, $psrResponse);
+
+        expect($response->getHeaderLine('Content-Type'))->toBe('application/json');
+    });
+
+    it('implements getBody', function () {
+        $request = Mockery::mock(RequestInterface::class);
+        $stream = Mockery::mock(StreamInterface::class);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getBody')->andReturn($stream);
+
+        $response = new Response($request, $psrResponse);
+
+        expect($response->getBody())->toBe($stream);
+    });
+
+    it('implements withProtocolVersion', function () {
+        $request = Mockery::mock(RequestInterface::class);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $newPsrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('withProtocolVersion')->with('2.0')->andReturn($newPsrResponse);
+
+        $response = new Response($request, $psrResponse);
+        $newResponse = $response->withProtocolVersion('2.0');
+
+        expect($newResponse)->not->toBe($response)
+            ->and($newResponse)->toBeInstanceOf(Response::class);
+    });
+
+    it('implements withHeader', function () {
+        $request = Mockery::mock(RequestInterface::class);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $newPsrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('withHeader')->with('X-Custom', 'value')->andReturn($newPsrResponse);
+
+        $response = new Response($request, $psrResponse);
+        $newResponse = $response->withHeader('X-Custom', 'value');
+
+        expect($newResponse)->not->toBe($response)
+            ->and($newResponse)->toBeInstanceOf(Response::class);
+    });
+
+    it('implements withAddedHeader', function () {
+        $request = Mockery::mock(RequestInterface::class);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $newPsrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('withAddedHeader')->with('Set-Cookie', 'value')->andReturn($newPsrResponse);
+
+        $response = new Response($request, $psrResponse);
+        $newResponse = $response->withAddedHeader('Set-Cookie', 'value');
+
+        expect($newResponse)->not->toBe($response)
+            ->and($newResponse)->toBeInstanceOf(Response::class);
+    });
+
+    it('implements withoutHeader', function () {
+        $request = Mockery::mock(RequestInterface::class);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $newPsrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('withoutHeader')->with('X-Deprecated')->andReturn($newPsrResponse);
+
+        $response = new Response($request, $psrResponse);
+        $newResponse = $response->withoutHeader('X-Deprecated');
+
+        expect($newResponse)->not->toBe($response)
+            ->and($newResponse)->toBeInstanceOf(Response::class);
+    });
+
+    it('implements withBody', function () {
+        $request = Mockery::mock(RequestInterface::class);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $newPsrResponse = Mockery::mock(PsrResponseInterface::class);
+        $stream = Mockery::mock(StreamInterface::class);
+        $psrResponse->shouldReceive('withBody')->with($stream)->andReturn($newPsrResponse);
+
+        $response = new Response($request, $psrResponse);
+        $newResponse = $response->withBody($stream);
+
+        expect($newResponse)->not->toBe($response)
+            ->and($newResponse)->toBeInstanceOf(Response::class);
+    });
+
+    it('implements withStatus', function () {
+        $request = Mockery::mock(RequestInterface::class);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $newPsrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('withStatus')->with(404, 'Not Found')->andReturn($newPsrResponse);
+
+        $response = new Response($request, $psrResponse);
+        $newResponse = $response->withStatus(404, 'Not Found');
+
+        expect($newResponse)->not->toBe($response)
+            ->and($newResponse)->toBeInstanceOf(Response::class);
+    });
+
+    it('can get serializer', function () {
+        $request = Mockery::mock(RequestInterface::class);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+
+        $response = new Response($request, $psrResponse);
+
+        expect($response->getSerializer())->toBeInstanceOf(\Farzai\Transport\Contracts\SerializerInterface::class);
+    });
+
+    it('can get PSR request', function () {
+        $request = Mockery::mock(RequestInterface::class);
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+
+        $response = new Response($request, $psrResponse);
+
+        expect($response->getPsrRequest())->toBe($request);
+    });
+});
+
 afterEach(function () {
     Mockery::close();
 });

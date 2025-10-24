@@ -49,9 +49,10 @@ try {
         ])
         ->send();
 
-    echo "Found {$response->json() ? count($response->json()) : 0} posts:\n";
+    $posts = $response->json();
+    echo 'Found '.($posts ? count($posts) : 0)." posts:\n";
 
-    foreach ($response->json() as $post) {
+    foreach ($posts as $post) {
         echo "  - [{$post['id']}] {$post['title']}\n";
     }
     echo "\n";
@@ -153,7 +154,7 @@ echo str_repeat('-', 50)."\n";
 try {
     $response = $transport->get('/posts/1')->send();
 
-    echo "Content-Type: ".implode(', ', $response->getHeader('Content-Type'))."\n";
+    echo 'Content-Type: '.implode(', ', $response->getHeader('Content-Type'))."\n";
     echo "All headers:\n";
 
     foreach ($response->headers() as $name => $values) {

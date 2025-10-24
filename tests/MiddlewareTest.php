@@ -92,6 +92,52 @@ describe('MiddlewareStack', function () {
 
         expect($response->getHeaderLine('X-Modified'))->toBe('true');
     });
+
+    it('can push middleware to stack', function () {
+        $middleware1 = new class implements \Farzai\Transport\Middleware\MiddlewareInterface
+        {
+            public function handle(\Psr\Http\Message\RequestInterface $request, callable $next): \Psr\Http\Message\ResponseInterface
+            {
+                $request = $request->withHeader('X-First', 'true');
+
+                return $next($request);
+            }
+        };
+
+        $middleware2 = new class implements \Farzai\Transport\Middleware\MiddlewareInterface
+        {
+            public function handle(\Psr\Http\Message\RequestInterface $request, callable $next): \Psr\Http\Message\ResponseInterface
+            {
+                $request = $request->withHeader('X-Second', 'true');
+
+                return $next($request);
+            }
+        };
+
+        $stack = new MiddlewareStack();
+        $result = $stack->push($middleware1);
+        $stack->push($middleware2);
+
+        // push should return $this for fluent API
+        expect($result)->toBe($stack);
+
+        $request = new Request('GET', 'https://example.com');
+        $stack->handle($request, function ($req) {
+            expect($req->getHeaderLine('X-First'))->toBe('true')
+                ->and($req->getHeaderLine('X-Second'))->toBe('true');
+
+            return new Response(200);
+        });
+    });
+
+    it('can create empty middleware stack', function () {
+        $stack = new MiddlewareStack();
+
+        $request = new Request('GET', 'https://example.com');
+        $response = $stack->handle($request, fn () => new Response(200));
+
+        expect($response->getStatusCode())->toBe(200);
+    });
 });
 
 describe('LoggingMiddleware', function () {

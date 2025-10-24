@@ -65,7 +65,7 @@ $transport3 = TransportBuilder::make()
     ->withBaseUri('https://jsonplaceholder.typicode.com')
     ->withRetries(
         maxRetries: 5,
-        strategy: new ExponentialBackoffStrategy(),
+        strategy: new ExponentialBackoffStrategy,
         condition: RetryCondition::default()
             ->onStatusCodes([408, 429, 500, 502, 503, 504]) // Retry on specific status codes
     )
@@ -87,7 +87,7 @@ $transport4 = TransportBuilder::make()
     ->withBaseUri('https://jsonplaceholder.typicode.com')
     ->withRetries(
         maxRetries: 3,
-        strategy: new ExponentialBackoffStrategy(),
+        strategy: new ExponentialBackoffStrategy,
         condition: RetryCondition::fromCallback(
             function (\Throwable $exception, \Farzai\Transport\Retry\RetryContext $context): bool {
                 echo "  Retry attempt {$context->attempt}/{$context->maxAttempts}\n";
@@ -138,7 +138,7 @@ try {
     }
     echo "\n";
 
-    echo "Delays used: ".implode(', ', $e->getDelaysUsed())." ms\n\n";
+    echo 'Delays used: '.implode(', ', $e->getDelaysUsed())." ms\n\n";
 }
 
 // Example 6: Demonstrating Retry with Valid Request

@@ -237,7 +237,7 @@ class RateLimitMiddleware implements MiddlewareInterface
         // Record this request
         $this->requests[] = $now;
 
-        echo "  ✓ Rate limit OK (".count($this->requests)."/{$this->maxRequests} requests)\n\n";
+        echo '  ✓ Rate limit OK ('.count($this->requests)."/{$this->maxRequests} requests)\n\n";
 
         return $next($request);
     }
