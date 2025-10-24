@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Farzai\Transport;
 
+use Farzai\Transport\Cookie\CookieJar;
 use Farzai\Transport\Factory\ClientFactory;
+use Farzai\Transport\Middleware\CookieMiddleware;
 use Farzai\Transport\Middleware\LoggingMiddleware;
 use Farzai\Transport\Middleware\MiddlewareInterface;
 use Farzai\Transport\Middleware\RetryMiddleware;
@@ -43,6 +45,8 @@ final class TransportBuilder
     private array $middlewares = [];
 
     private bool $useDefaultMiddlewares = true;
+
+    private ?CookieJar $cookieJar = null;
 
     /**
      * Create a new builder instance.
@@ -148,6 +152,30 @@ final class TransportBuilder
     }
 
     /**
+     * Enable automatic cookie handling with a cookie jar.
+     *
+     * @param  CookieJar|null  $cookieJar  Optional cookie jar (creates new if null)
+     * @return $this
+     */
+    public function withCookieJar(?CookieJar $cookieJar = null): self
+    {
+        $clone = clone $this;
+        $clone->cookieJar = $cookieJar ?? new CookieJar;
+
+        return $clone;
+    }
+
+    /**
+     * Enable automatic cookie handling (shortcut).
+     *
+     * @return $this
+     */
+    public function withCookies(): self
+    {
+        return $this->withCookieJar();
+    }
+
+    /**
      * Get the configured client.
      */
     public function getClient(): ?ClientInterface
@@ -200,6 +228,11 @@ final class TransportBuilder
     private function buildMiddlewares(LoggerInterface $logger): array
     {
         $middlewares = [];
+
+        // Add cookie middleware first if configured
+        if ($this->cookieJar !== null) {
+            $middlewares[] = new CookieMiddleware($this->cookieJar);
+        }
 
         if ($this->useDefaultMiddlewares) {
             // Add logging middleware

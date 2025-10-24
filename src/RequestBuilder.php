@@ -7,6 +7,7 @@ namespace Farzai\Transport;
 use Farzai\Transport\Contracts\ResponseInterface;
 use Farzai\Transport\Contracts\SerializerInterface;
 use Farzai\Transport\Factory\HttpFactory;
+use Farzai\Transport\Multipart\MultipartStreamBuilder;
 use Farzai\Transport\Serialization\SerializerFactory;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\StreamInterface;
@@ -131,6 +132,69 @@ class RequestBuilder
         $clone->headers['Content-Type'] = 'application/x-www-form-urlencoded';
 
         return $clone;
+    }
+
+    /**
+     * Set multipart/form-data body.
+     *
+     * Supports multiple formats:
+     * - ['name' => 'value', ...] for simple fields
+     * - [['name' => '...', 'contents' => '...', 'filename' => '...'], ...]
+     * - [['name' => '...', 'contents' => fopen(...), 'filename' => '...'], ...]
+     *
+     * @param  array<mixed>  $data  Multipart data
+     * @param  string|null  $boundary  Optional custom boundary
+     * @return $this
+     */
+    public function withMultipart(array $data, ?string $boundary = null): self
+    {
+        $builder = new MultipartStreamBuilder($boundary, $this->httpFactory);
+        $builder->addMultiple($data);
+
+        return $this->withMultipartBuilder($builder);
+    }
+
+    /**
+     * Set multipart body using a builder.
+     *
+     * @param  MultipartStreamBuilder  $builder  The multipart builder
+     * @return $this
+     */
+    public function withMultipartBuilder(MultipartStreamBuilder $builder): self
+    {
+        $clone = clone $this;
+        $clone->body = $builder->build();
+        $clone->headers['Content-Type'] = $builder->getContentType();
+
+        return $clone;
+    }
+
+    /**
+     * Add a file to multipart request.
+     *
+     * This is a convenience method for single file uploads.
+     *
+     * @param  string  $name  Field name
+     * @param  string  $path  File path
+     * @param  string|null  $filename  Optional custom filename
+     * @param  array<string, mixed>  $additionalFields  Additional form fields
+     * @return $this
+     */
+    public function withFile(
+        string $name,
+        string $path,
+        ?string $filename = null,
+        array $additionalFields = []
+    ): self {
+        $builder = new MultipartStreamBuilder(null, $this->httpFactory);
+        $builder->addFile($name, $path, $filename);
+
+        // Add additional fields
+        foreach ($additionalFields as $fieldName => $fieldValue) {
+            $builder->addField($fieldName, (string) $fieldValue);
+        }
+
+        return $this->withMultipartBuilder($builder);
     }
 
     /**
