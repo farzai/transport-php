@@ -20,6 +20,8 @@ A modern, PSR-compliant HTTP client for PHP with middleware architecture, advanc
 - ✅ **JSON Helpers** - Parse JSON with proper error handling and dot-notation access
 - ✅ **Custom Exceptions** - Detailed error context implementing PSR standards
 - ✅ **Easy to Swap HTTP Clients** - Switch between Guzzle, Symfony, or any PSR-18 client
+- ✅ **File Upload & Multipart** - RFC 7578 compliant multipart/form-data with file upload support
+- ✅ **Cookie Management** - RFC 6265 compliant automatic cookie handling with session support
 
 ## Requirements
 
@@ -242,6 +244,107 @@ $transport = TransportBuilder::make()
 echo ClientFactory::getDetectedClientName(); // e.g., "Symfony\Component\HttpClient\Psr18Client"
 ```
 
+### File Upload & Multipart Requests
+
+```php
+// Simple file upload
+$response = $transport->post('/upload')
+    ->withFile(
+        name: 'document',
+        path: '/path/to/file.pdf',
+        filename: 'report.pdf',
+        additionalFields: ['title' => 'Monthly Report']
+    )
+    ->send();
+
+// Multiple files with form data
+$response = $transport->post('/upload')
+    ->withMultipart([
+        // Text fields
+        ['name' => 'title', 'contents' => 'My Upload'],
+        ['name' => 'description', 'contents' => 'File description'],
+
+        // File uploads
+        [
+            'name' => 'avatar',
+            'contents' => file_get_contents('photo.jpg'),
+            'filename' => 'avatar.jpg',
+            'content-type' => 'image/jpeg'
+        ],
+        [
+            'name' => 'document',
+            'contents' => fopen('/path/to/file.pdf', 'r'),
+            'filename' => 'document.pdf'
+        ]
+    ])
+    ->send();
+
+// Advanced: Using MultipartStreamBuilder
+use Farzai\Transport\Multipart\MultipartStreamBuilder;
+
+$builder = new MultipartStreamBuilder();
+$builder->addField('username', 'john_doe')
+    ->addFile('avatar', '/path/to/avatar.jpg', 'profile.jpg')
+    ->addFileContents('data', $jsonData, 'data.json', 'application/json');
+
+$response = $transport->post('/api/upload')
+    ->withMultipartBuilder($builder)
+    ->send();
+```
+
+### Cookie Management
+
+```php
+// Automatic cookie handling
+$transport = TransportBuilder::make()
+    ->withBaseUri('https://api.example.com')
+    ->withCookies() // Enable automatic cookie management
+    ->build();
+
+// Login - cookies are automatically stored
+$transport->post('/login')
+    ->withJson(['username' => 'user', 'password' => 'pass'])
+    ->send();
+
+// Subsequent requests automatically include cookies
+$response = $transport->get('/profile')->send();
+
+// Advanced: Manual cookie management
+use Farzai\Transport\Cookie\CookieJar;
+use Farzai\Transport\Cookie\Cookie;
+
+$cookieJar = new CookieJar();
+
+// Add cookies manually
+$cookieJar->setCookie(new Cookie(
+    name: 'session_id',
+    value: 'abc123',
+    expiresAt: time() + 3600,
+    domain: 'example.com',
+    path: '/',
+    secure: true,
+    httpOnly: true
+));
+
+$transport = TransportBuilder::make()
+    ->withCookieJar($cookieJar)
+    ->build();
+
+// Inspect cookies
+echo "Cookies: {$cookieJar->count()}\n";
+foreach ($cookieJar->getAllCookies() as $cookie) {
+    echo "{$cookie->getName()}: {$cookie->getValue()}\n";
+}
+
+// Export/Import cookies for persistence
+$data = $cookieJar->toArray();
+file_put_contents('cookies.json', json_encode($data));
+
+// Later...
+$newJar = new CookieJar();
+$newJar->fromArray(json_decode(file_get_contents('cookies.json'), true));
+```
+
 ### Error Handling
 
 ```php
@@ -346,6 +449,8 @@ $response = ResponseBuilder::create()
   - [Custom HTTP Clients](examples/custom-client.php)
   - [Advanced Retry Logic](examples/advanced-retry.php)
   - [Custom Middleware](examples/middleware-example.php)
+  - [File Upload](examples/file-upload.php)
+  - [Cookie Session Management](examples/cookie-session.php)
 
 ## Architecture
 
