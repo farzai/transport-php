@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Farzai\Transport;
 
+use Farzai\Transport\Factory\ClientFactory;
 use Farzai\Transport\Middleware\LoggingMiddleware;
 use Farzai\Transport\Middleware\MiddlewareInterface;
 use Farzai\Transport\Middleware\RetryMiddleware;
@@ -11,7 +12,6 @@ use Farzai\Transport\Middleware\TimeoutMiddleware;
 use Farzai\Transport\Retry\ExponentialBackoffStrategy;
 use Farzai\Transport\Retry\RetryCondition;
 use Farzai\Transport\Retry\RetryStrategyInterface;
-use GuzzleHttp\Client as GuzzleClient;
 use Psr\Http\Client\ClientInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -165,11 +165,17 @@ final class TransportBuilder
 
     /**
      * Build the transport with configured settings.
+     *
+     * Auto-detects PSR-18 HTTP client if none is provided.
+     * Discovery order: Symfony HTTP Client → Guzzle → Other PSR-18 clients
      */
     public function build(): Transport
     {
-        $client = $this->client ?? new GuzzleClient;
         $logger = $this->logger ?? new NullLogger;
+
+        // Auto-detect client if not explicitly set
+        // This allows users to use any PSR-18 client without configuration
+        $client = $this->client ?? ClientFactory::create($logger);
 
         $config = new TransportConfig(
             client: $client,

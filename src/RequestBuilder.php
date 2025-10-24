@@ -6,9 +6,8 @@ namespace Farzai\Transport;
 
 use Farzai\Transport\Contracts\ResponseInterface;
 use Farzai\Transport\Contracts\SerializerInterface;
+use Farzai\Transport\Factory\HttpFactory;
 use Farzai\Transport\Serialization\SerializerFactory;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Uri;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UriInterface;
@@ -30,10 +29,16 @@ class RequestBuilder
 
     private SerializerInterface $serializer;
 
-    public function __construct(?Transport $transport = null, ?SerializerInterface $serializer = null)
-    {
+    private HttpFactory $httpFactory;
+
+    public function __construct(
+        ?Transport $transport = null,
+        ?SerializerInterface $serializer = null,
+        ?HttpFactory $httpFactory = null
+    ) {
         $this->transport = $transport;
-        $this->uri = new Uri;
+        $this->httpFactory = $httpFactory ?? HttpFactory::getInstance();
+        $this->uri = $this->httpFactory->createUri();
         $this->serializer = $serializer ?? SerializerFactory::createDefault();
     }
 
@@ -54,7 +59,7 @@ class RequestBuilder
     public function uri(UriInterface|string $uri): self
     {
         $clone = clone $this;
-        $clone->uri = is_string($uri) ? new Uri($uri) : $uri;
+        $clone->uri = is_string($uri) ? $this->httpFactory->createUri($uri) : $uri;
 
         return $clone;
     }
@@ -173,12 +178,24 @@ class RequestBuilder
      */
     public function build(): RequestInterface
     {
-        return new Request(
-            $this->method,
-            $this->uri,
-            $this->headers,
-            $this->body
-        );
+        $request = $this->httpFactory->createRequest($this->method, $this->uri);
+
+        // Add headers
+        foreach ($this->headers as $name => $value) {
+            $request = $request->withHeader($name, $value);
+        }
+
+        // Add body if present
+        if ($this->body !== null) {
+            if (is_string($this->body)) {
+                $stream = $this->httpFactory->createStream($this->body);
+                $request = $request->withBody($stream);
+            } else {
+                $request = $request->withBody($this->body);
+            }
+        }
+
+        return $request;
     }
 
     /**

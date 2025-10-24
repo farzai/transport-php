@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Farzai\Transport;
 
+use Farzai\Transport\Factory\HttpFactory;
 use Psr\Http\Message\ResponseInterface as PsrResponseInterface;
 
 class ResponseBuilder
@@ -24,12 +25,24 @@ class ResponseBuilder
 
     protected ?string $reason = null;
 
+    protected HttpFactory $httpFactory;
+
+    /**
+     * Create a new response builder instance.
+     *
+     * @param  HttpFactory|null  $httpFactory  Optional HTTP factory for creating PSR-7 objects
+     */
+    public function __construct(?HttpFactory $httpFactory = null)
+    {
+        $this->httpFactory = $httpFactory ?? HttpFactory::getInstance();
+    }
+
     /**
      * Create a new response builder instance.
      */
-    public static function create(): ResponseBuilder
+    public static function create(?HttpFactory $httpFactory = null): ResponseBuilder
     {
-        return new static;
+        return new static($httpFactory);
     }
 
     /**
@@ -112,12 +125,30 @@ class ResponseBuilder
      */
     public function build(): PsrResponseInterface
     {
-        return new \GuzzleHttp\Psr7\Response(
+        $response = $this->httpFactory->createResponse(
             $this->statusCode,
-            $this->headers,
-            $this->body,
-            $this->version,
-            $this->reason
+            $this->reason ?? ''
         );
+
+        // Add headers
+        foreach ($this->headers as $name => $values) {
+            $response = $response->withHeader($name, $values);
+        }
+
+        // Add body if present
+        if ($this->body !== null) {
+            $stream = is_string($this->body)
+                ? $this->httpFactory->createStream($this->body)
+                : $this->body;
+
+            $response = $response->withBody($stream);
+        }
+
+        // Set protocol version if different from default
+        if ($this->version !== '1.1') {
+            $response = $response->withProtocolVersion($this->version);
+        }
+
+        return $response;
     }
 }

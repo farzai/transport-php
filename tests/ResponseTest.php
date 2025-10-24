@@ -209,7 +209,7 @@ describe('Response error handling', function () {
         $response = new Response($request, $psrResponse);
 
         $response->throw();
-    })->throws(\GuzzleHttp\Exception\BadResponseException::class);
+    })->throws(\Farzai\Transport\Exceptions\ClientException::class);
 
     it('does not throw on successful response', function () {
         $request = Mockery::mock(RequestInterface::class);

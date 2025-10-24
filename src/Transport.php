@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Farzai\Transport;
 
 use Farzai\Transport\Contracts\ResponseInterface;
+use Farzai\Transport\Factory\HttpFactory;
 use Farzai\Transport\Middleware\MiddlewareStack;
-use GuzzleHttp\Psr7\Uri;
 use Psr\Http\Client\ClientInterface as PsrClientInterface;
 use Psr\Http\Message\RequestInterface as PsrRequestInterface;
 use Psr\Http\Message\ResponseInterface as PsrResponseInterface;
@@ -16,13 +16,17 @@ class Transport implements PsrClientInterface
 {
     private readonly MiddlewareStack $middlewareStack;
 
+    private readonly HttpFactory $httpFactory;
+
     /**
      * Create a new transport instance.
      */
     public function __construct(
-        private readonly TransportConfig $config
+        private readonly TransportConfig $config,
+        ?HttpFactory $httpFactory = null
     ) {
         $this->middlewareStack = new MiddlewareStack($this->config->middlewares);
+        $this->httpFactory = $httpFactory ?? HttpFactory::getInstance();
     }
 
     /**
@@ -169,7 +173,7 @@ class Transport implements PsrClientInterface
 
         // If no host, prepend base URI
         if (empty($uri->getHost()) && ! empty($this->config->baseUri)) {
-            $baseUri = new Uri($this->config->baseUri);
+            $baseUri = $this->httpFactory->createUri($this->config->baseUri);
             $uri = $baseUri->withPath($baseUri->getPath().$uri->getPath());
             $uri = $uri->withQuery($uri->getQuery());
             $request = $request->withUri($uri);

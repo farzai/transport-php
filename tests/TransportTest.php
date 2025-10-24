@@ -14,7 +14,7 @@ describe('TransportBuilder', function () {
         $transport = TransportBuilder::make()->build();
 
         expect($transport)->toBeInstanceOf(Transport::class)
-            ->and($transport->getPsrClient())->toBeInstanceOf(GuzzleClient::class)
+            ->and($transport->getPsrClient())->toBeInstanceOf(\Psr\Http\Client\ClientInterface::class) // Auto-detected client
             ->and($transport->getLogger())->toBeInstanceOf(NullLogger::class)
             ->and($transport->getUri())->toBe('')
             ->and($transport->getTimeout())->toBe(30)

@@ -9,16 +9,17 @@ A modern, PSR-compliant HTTP client for PHP with middleware architecture, advanc
 
 ## Features
 
-- ✅ **PSR-7** HTTP Message Interface
-- ✅ **PSR-18** HTTP Client Interface
-- ✅ **PSR-3** Logger Interface support
+- ✅ **PSR Standards** - Built on PSR-7 (HTTP Messages), PSR-17 (HTTP Factories), PSR-18 (HTTP Client)
+- ✅ **No Hard Dependencies** - Use any PSR-18 HTTP client (Guzzle, Symfony, or custom)
+- ✅ **Auto-Detection** - Automatically discovers and uses available HTTP clients
 - ✅ **Middleware Architecture** - Extensible plugin system for custom behavior
 - ✅ **Advanced Retry Strategies** - Exponential backoff with jitter, custom retry conditions
 - ✅ **Fluent Request Builder** - Chainable API for building requests
 - ✅ **Immutable Configuration** - Thread-safe, predictable behavior
 - ✅ **Type-Safe** - Full PHP 8.1+ type hints and strict types
-- ✅ **JSON Helpers** - Parse JSON with proper error handling
-- ✅ **Custom Exceptions** - Detailed error context and retry information
+- ✅ **JSON Helpers** - Parse JSON with proper error handling and dot-notation access
+- ✅ **Custom Exceptions** - Detailed error context implementing PSR standards
+- ✅ **Easy to Swap HTTP Clients** - Switch between Guzzle, Symfony, or any PSR-18 client
 
 ## Requirements
 
@@ -30,6 +31,32 @@ You can install the package via composer:
 
 ```bash
 composer require farzai/transport
+```
+
+The library will auto-detect any available PSR-18 HTTP client. If you don't have one installed, we recommend:
+
+```bash
+# Recommended: Modern HTTP client with async support
+composer require symfony/http-client
+
+# Alternative: Popular and widely-used
+composer require guzzlehttp/guzzle
+```
+
+## Quick Start
+
+Transport PHP automatically detects available HTTP clients (Symfony, Guzzle, etc.) - no configuration needed!
+
+```php
+use Farzai\Transport\TransportBuilder;
+
+// Just works! Auto-detects your HTTP client
+$transport = TransportBuilder::make()
+    ->withBaseUri('https://api.example.com')
+    ->build();
+
+$response = $transport->get('/users')->send();
+echo $response->json('data.0.name'); // Dot notation support!
 ```
 
 ## Usage
@@ -193,18 +220,47 @@ $transport = TransportBuilder::make()
     ->build();
 ```
 
+### HTTP Client Selection
+
+```php
+use Farzai\Transport\Factory\ClientFactory;
+
+// Auto-detect (recommended - uses Symfony > Guzzle > Others)
+$transport = TransportBuilder::make()->build();
+
+// Explicitly use Guzzle
+$transport = TransportBuilder::make()
+    ->setClient(ClientFactory::createGuzzle(['timeout' => 30]))
+    ->build();
+
+// Explicitly use Symfony HTTP Client
+$transport = TransportBuilder::make()
+    ->setClient(ClientFactory::createSymfony(['max_redirects' => 5]))
+    ->build();
+
+// Check which client is being used
+echo ClientFactory::getDetectedClientName(); // e.g., "Symfony\Component\HttpClient\Psr18Client"
+```
+
 ### Error Handling
 
 ```php
+use Farzai\Transport\Exceptions\ClientException;
+use Farzai\Transport\Exceptions\ServerException;
 use Farzai\Transport\Exceptions\RetryExhaustedException;
 use Farzai\Transport\Exceptions\JsonParseException;
-use Farzai\Transport\Exceptions\NetworkException;
 
 // Throw exception on non-2xx responses
 try {
     $response->throw();
-} catch (\GuzzleHttp\Exception\BadResponseException $e) {
-    echo $e->getMessage();
+} catch (ClientException $e) {
+    // 4xx errors
+    echo "Client error: {$e->getStatusCode()}\n";
+    echo "Request: {$e->getRequest()->getUri()}\n";
+    var_dump($e->getContext()); // Rich debugging context
+} catch (ServerException $e) {
+    // 5xx errors
+    echo "Server error: {$e->getStatusCode()}\n";
 }
 
 // Custom error handling callback
@@ -281,11 +337,32 @@ $response = ResponseBuilder::create()
     ->build();
 ```
 
+## Documentation
+
+- **[Architecture Guide](docs/architecture.md)** - Deep dive into design patterns and internal architecture
+- **[Migration Guide](docs/migration-from-guzzle.md)** - Migrating from Guzzle or v1.x
+- **[Examples](examples/)** - Practical usage examples:
+  - [Basic Usage](examples/basic-usage.php)
+  - [Custom HTTP Clients](examples/custom-client.php)
+  - [Advanced Retry Logic](examples/advanced-retry.php)
+  - [Custom Middleware](examples/middleware-example.php)
+
 ## Architecture
 
-### Middleware System
+### No Hard Dependencies on Guzzle
 
-The library uses a middleware pipeline architecture that allows you to easily extend functionality:
+Transport PHP v2.x uses PSR standards and auto-detection:
+
+- **PSR-7** - HTTP Message Interface
+- **PSR-17** - HTTP Factories for creating requests/responses
+- **PSR-18** - HTTP Client Interface
+
+This means you can use **any** PSR-18 compliant HTTP client:
+- ✅ Symfony HTTP Client (modern, async, HTTP/2)
+- ✅ Guzzle (popular, stable)
+- ✅ Any custom PSR-18 implementation
+
+### Middleware System
 
 ```
 Request → Middleware Stack → HTTP Client → Response
@@ -311,9 +388,6 @@ $transport = TransportBuilder::make()
     ->withTimeout(30)
     ->withRetries(3)
     ->build();
-
-// ❌ No longer available - no mutable setters
-// $transport->setTimeout(30);  // Method doesn't exist
 ```
 
 This makes the Transport instance:
