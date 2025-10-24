@@ -127,6 +127,16 @@ describe('RetryCondition', function () {
         expect($condition->shouldRetry(new \RuntimeException('retryable'), $context))->toBeTrue()
             ->and($condition->shouldRetry(new \RuntimeException('fatal'), $context))->toBeFalse();
     });
+
+    it('does not retry when no conditions are set', function () {
+        $condition = new RetryCondition; // No conditions added
+
+        $request = new Request('GET', 'https://example.com');
+        $context = new RetryContext($request, 0, 3);
+
+        // Should return false since there are no conditions
+        expect($condition->shouldRetry(new \RuntimeException('error'), $context))->toBeFalse();
+    });
 });
 
 describe('RetryContext', function () {

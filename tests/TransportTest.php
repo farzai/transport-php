@@ -77,6 +77,55 @@ describe('TransportBuilder', function () {
 
         expect($builder)->not->toBe($builder2);
     });
+
+    it('can get configured client', function () {
+        $client = new GuzzleClient;
+        $builder = TransportBuilder::make()->setClient($client);
+
+        expect($builder->getClient())->toBe($client);
+    });
+
+    it('can get configured logger', function () {
+        $logger = new NullLogger;
+        $builder = TransportBuilder::make()->setLogger($logger);
+
+        expect($builder->getLogger())->toBe($logger);
+    });
+
+    it('returns null when no client configured', function () {
+        $builder = TransportBuilder::make();
+
+        expect($builder->getClient())->toBeNull();
+    });
+
+    it('returns null when no logger configured', function () {
+        $builder = TransportBuilder::make();
+
+        expect($builder->getLogger())->toBeNull();
+    });
+
+    it('can add custom middleware', function () {
+        $middleware = Mockery::mock(\Farzai\Transport\Middleware\MiddlewareInterface::class);
+        $middleware->shouldReceive('handle')
+            ->once()
+            ->andReturnUsing(function ($request, $next) {
+                return $next($request);
+            });
+
+        $client = Mockery::mock(ClientInterface::class);
+        $client->shouldReceive('sendRequest')
+            ->once()
+            ->andReturn(new GuzzleResponse(200, [], '{}'));
+
+        $transport = TransportBuilder::make()
+            ->setClient($client)
+            ->withMiddleware($middleware)
+            ->withoutDefaultMiddlewares()
+            ->build();
+
+        $request = new \GuzzleHttp\Psr7\Request('GET', 'https://example.com');
+        $transport->sendRequest($request);
+    });
 });
 
 describe('Transport', function () {
@@ -161,6 +210,50 @@ describe('Transport', function () {
             ['Content-Type' => 'text/plain']
         );
         $transport->sendRequest($request);
+    });
+
+    it('can get transport config', function () {
+        $transport = TransportBuilder::make()
+            ->withBaseUri('https://api.example.com')
+            ->withTimeout(60)
+            ->withRetries(3)
+            ->build();
+
+        $config = $transport->getConfig();
+
+        expect($config)->toBeInstanceOf(\Farzai\Transport\TransportConfig::class)
+            ->and($config->baseUri)->toBe('https://api.example.com')
+            ->and($config->timeout)->toBe(60)
+            ->and($config->maxRetries)->toBe(3);
+    });
+
+    it('send method returns ResponseInterface when PSR response is already ResponseInterface', function () {
+        $client = Mockery::mock(ClientInterface::class);
+        $request = new \GuzzleHttp\Psr7\Request('GET', 'https://example.com');
+
+        // Create a Response that implements both PSR ResponseInterface and our ResponseInterface
+        $mockResponse = Mockery::mock(\Farzai\Transport\Contracts\ResponseInterface::class);
+        $mockResponse->shouldReceive('getStatusCode')->andReturn(200);
+        $mockResponse->shouldReceive('getReasonPhrase')->andReturn('OK');
+        $mockResponse->shouldReceive('getProtocolVersion')->andReturn('1.1');
+        $mockResponse->shouldReceive('getHeaders')->andReturn([]);
+        $mockResponse->shouldReceive('hasHeader')->andReturn(false);
+        $mockResponse->shouldReceive('getHeader')->andReturn([]);
+        $mockResponse->shouldReceive('getHeaderLine')->andReturn('');
+        $mockResponse->shouldReceive('getBody')->andReturn(Mockery::mock(\Psr\Http\Message\StreamInterface::class));
+
+        $client->shouldReceive('sendRequest')
+            ->once()
+            ->andReturn($mockResponse);
+
+        $transport = TransportBuilder::make()
+            ->setClient($client)
+            ->withoutDefaultMiddlewares()
+            ->build();
+
+        $response = $transport->send($request);
+
+        expect($response)->toBe($mockResponse);
     });
 });
 

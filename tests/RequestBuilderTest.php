@@ -141,6 +141,24 @@ describe('RequestBuilder fluent API', function () {
 
         expect($builder)->not->toBe($builder2);
     });
+
+    it('can set body with StreamInterface', function () {
+        $stream = \Farzai\Transport\Factory\HttpFactory::getInstance()
+            ->createStream('test body content');
+
+        $request = RequestBuilder::post('/users')
+            ->withBody($stream)
+            ->build();
+
+        expect($request->getBody()->getContents())->toBe('test body content');
+    });
+
+    it('throws exception when sending without transport', function () {
+        $builder = RequestBuilder::get('/users');
+
+        expect(fn () => $builder->send())
+            ->toThrow(RuntimeException::class, 'No transport instance available');
+    });
 });
 
 describe('RequestBuilder with Transport', function () {

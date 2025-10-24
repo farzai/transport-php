@@ -76,6 +76,10 @@ describe('JsonConfig', function () {
         new JsonConfig(maxDepth: -1);
     })->throws(\InvalidArgumentException::class);
 
+    it('throws exception when max depth exceeds maximum value', function () {
+        new JsonConfig(maxDepth: 2147483648); // PHP_INT_MAX + 1 on 32-bit or exceeds validation
+    })->throws(\InvalidArgumentException::class, 'Max depth exceeds maximum allowed value');
+
     it('allows chaining configuration methods', function () {
         $config = JsonConfig::default()
             ->withMaxDepth(256)

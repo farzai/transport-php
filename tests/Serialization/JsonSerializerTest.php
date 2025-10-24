@@ -200,4 +200,48 @@ describe('JsonSerializer', function () {
         expect($serializer->decode($json, 'items.0.name'))->toBe('First')
             ->and($serializer->decode($json, 'items.1.id'))->toBe(2);
     });
+
+    it('can extract values from object data with dot notation', function () {
+        $config = JsonConfig::default()->withAssociative(false);
+        $serializer = new JsonSerializer($config);
+        $json = '{"user":{"name":"John","email":"john@example.com"}}';
+
+        $result = $serializer->decode($json, 'user.name');
+
+        expect($result)->toBe('John');
+    });
+
+    it('returns scalar value when key is empty string', function () {
+        $serializer = new JsonSerializer;
+        $json = '"just a string"';
+
+        $result = $serializer->decode($json, '');
+
+        expect($result)->toBe('just a string');
+    });
+
+    it('returns null for scalar value with non-empty key', function () {
+        $serializer = new JsonSerializer;
+        $json = '"just a string"';
+
+        $result = $serializer->decode($json, 'some.key');
+
+        expect($result)->toBeNull();
+    });
+
+    it('handles integer scalar with key extraction', function () {
+        $serializer = new JsonSerializer;
+        $json = '42';
+
+        expect($serializer->decode($json, ''))->toBe(42)
+            ->and($serializer->decode($json, 'key'))->toBeNull();
+    });
+
+    it('handles boolean scalar with key extraction', function () {
+        $serializer = new JsonSerializer;
+        $json = 'true';
+
+        expect($serializer->decode($json, ''))->toBeTrue()
+            ->and($serializer->decode($json, 'key'))->toBeNull();
+    });
 });

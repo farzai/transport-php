@@ -14,7 +14,7 @@ use Psr\Http\Message\StreamInterface;
 
 class Response implements ResponseInterface
 {
-    protected ?array $jsonDecoded = null;
+    protected mixed $jsonDecoded = null;
 
     protected ?string $content = null;
 

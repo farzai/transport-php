@@ -193,6 +193,59 @@ describe('Response JSON parsing', function () {
 
         expect($result)->toBe(['foo' => 'bar']);
     });
+
+    it('returns null when getting key from non-array JSON data', function () {
+        $request = Mockery::mock(RequestInterface::class);
+
+        // Use a serializer configured to return objects
+        $config = \Farzai\Transport\Serialization\JsonConfig::default()->withAssociative(false);
+        $serializer = new \Farzai\Transport\Serialization\JsonSerializer($config);
+
+        $stream = Mockery::mock(StreamInterface::class);
+        $stream->shouldReceive('getContents')->andReturn('{"name":"John"}');
+
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getBody')->andReturn($stream);
+
+        $response = new Response($request, $psrResponse, $serializer);
+
+        // When JSON is parsed as object and we try to get a key, it should return null
+        $result = $response->json('name');
+
+        expect($result)->toBeNull();
+    });
+
+    it('returns empty array when toArray is called on non-array JSON', function () {
+        $request = Mockery::mock(RequestInterface::class);
+
+        $stream = Mockery::mock(StreamInterface::class);
+        $stream->shouldReceive('getContents')->andReturn('"just a string"');
+
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getBody')->andReturn($stream);
+
+        $response = new Response($request, $psrResponse);
+
+        $result = $response->toArray();
+
+        expect($result)->toBe([]);
+    });
+
+    it('returns empty array when toArray is called on integer JSON', function () {
+        $request = Mockery::mock(RequestInterface::class);
+
+        $stream = Mockery::mock(StreamInterface::class);
+        $stream->shouldReceive('getContents')->andReturn('123');
+
+        $psrResponse = Mockery::mock(PsrResponseInterface::class);
+        $psrResponse->shouldReceive('getBody')->andReturn($stream);
+
+        $response = new Response($request, $psrResponse);
+
+        $result = $response->toArray();
+
+        expect($result)->toBe([]);
+    });
 });
 
 describe('Response error handling', function () {
@@ -283,6 +336,30 @@ describe('ResponseBuilder', function () {
         expect($response->getStatusCode())->toBe(404)
             ->and($response->getProtocolVersion())->toBe('1.1')
             ->and($response->getReasonPhrase())->toBe('Not Found');
+    });
+
+    it('can build response with StreamInterface body', function () {
+        $stream = \Farzai\Transport\Factory\HttpFactory::getInstance()
+            ->createStream('stream body content');
+
+        $response = ResponseBuilder::create()
+            ->statusCode(200)
+            ->withBody($stream)
+            ->build();
+
+        expect($response->getStatusCode())->toBe(200)
+            ->and($response->getBody()->getContents())->toBe('stream body content');
+    });
+
+    it('can build response with custom protocol version', function () {
+        $response = ResponseBuilder::create()
+            ->statusCode(200)
+            ->withVersion('2.0')
+            ->withBody('HTTP/2 response')
+            ->build();
+
+        expect($response->getProtocolVersion())->toBe('2.0')
+            ->and($response->getBody()->getContents())->toBe('HTTP/2 response');
     });
 });
 
