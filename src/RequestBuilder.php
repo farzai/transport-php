@@ -102,7 +102,6 @@ class RequestBuilder
      * Uses the injected serializer for encoding with proper error handling.
      *
      * @param  mixed  $data  The data to encode as JSON
-     * @return self
      *
      * @throws \Farzai\Transport\Exceptions\JsonEncodeException When encoding fails
      */

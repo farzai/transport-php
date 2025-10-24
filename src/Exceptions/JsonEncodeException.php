@@ -49,7 +49,6 @@ class JsonEncodeException extends SerializationException
      * @param  \JsonException  $exception  The JsonException
      * @param  mixed  $value  The value that failed to encode
      * @param  int  $depth  The nesting depth used
-     * @return static
      */
     public static function fromJsonException(\JsonException $exception, mixed $value, int $depth = 512): static
     {

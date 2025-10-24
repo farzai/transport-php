@@ -111,7 +111,7 @@ final class SerializerFactory
         if (isset(self::$contentTypeMap[$normalizedType])) {
             $serializerClass = self::$contentTypeMap[$normalizedType];
 
-            return new $serializerClass();
+            return new $serializerClass;
         }
 
         throw new \InvalidArgumentException(
@@ -138,7 +138,6 @@ final class SerializerFactory
      *
      * @param  string  $contentType  The content type to register
      * @param  SerializerInterface  $serializer  The serializer instance
-     * @return void
      */
     public static function registerCustomSerializer(string $contentType, SerializerInterface $serializer): void
     {
@@ -164,8 +163,6 @@ final class SerializerFactory
      * Clear all custom serializers.
      *
      * Useful for testing.
-     *
-     * @return void
      */
     public static function clearCustomSerializers(): void
     {

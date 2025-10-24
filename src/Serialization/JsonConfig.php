@@ -34,7 +34,7 @@ final class JsonConfig
      */
     public static function default(): self
     {
-        return new self();
+        return new self;
     }
 
     /**

@@ -48,7 +48,6 @@ class JsonParseException extends SerializationException
      * @param  \JsonException  $exception  The JsonException
      * @param  string  $jsonString  The JSON string that failed to parse
      * @param  int  $depth  The nesting depth used
-     * @return static
      */
     public static function fromJsonException(\JsonException $exception, string $jsonString, int $depth = 512): static
     {

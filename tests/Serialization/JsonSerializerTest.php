@@ -9,7 +9,7 @@ use Farzai\Transport\Serialization\JsonSerializer;
 
 describe('JsonSerializer', function () {
     it('encodes simple data to JSON', function () {
-        $serializer = new JsonSerializer();
+        $serializer = new JsonSerializer;
         $data = ['name' => 'John', 'age' => 30];
 
         $result = $serializer->encode($data);
@@ -19,7 +19,7 @@ describe('JsonSerializer', function () {
     });
 
     it('decodes JSON string to array', function () {
-        $serializer = new JsonSerializer();
+        $serializer = new JsonSerializer;
         $json = '{"name":"John","age":30}';
 
         $result = $serializer->decode($json);
@@ -28,7 +28,7 @@ describe('JsonSerializer', function () {
     });
 
     it('decodes nested JSON using dot notation', function () {
-        $serializer = new JsonSerializer();
+        $serializer = new JsonSerializer;
         $json = '{"user":{"name":"John","address":{"city":"NYC"}}}';
 
         expect($serializer->decode($json, 'user.name'))->toBe('John')
@@ -36,25 +36,25 @@ describe('JsonSerializer', function () {
     });
 
     it('returns null for empty string', function () {
-        $serializer = new JsonSerializer();
+        $serializer = new JsonSerializer;
 
         expect($serializer->decode(''))->toBeNull();
     });
 
     it('throws JsonParseException on invalid JSON', function () {
-        $serializer = new JsonSerializer();
+        $serializer = new JsonSerializer;
 
         $serializer->decode('{"invalid": json}');
     })->throws(JsonParseException::class);
 
     it('decodeOrNull returns null on invalid JSON', function () {
-        $serializer = new JsonSerializer();
+        $serializer = new JsonSerializer;
 
         expect($serializer->decodeOrNull('{"invalid": json}'))->toBeNull();
     });
 
     it('handles large integers with BIGINT_AS_STRING', function () {
-        $serializer = new JsonSerializer();
+        $serializer = new JsonSerializer;
         // Use a number larger than PHP_INT_MAX to ensure it's converted to string
         $json = '{"bigNumber": 99999999999999999999}';
 
@@ -66,7 +66,7 @@ describe('JsonSerializer', function () {
     });
 
     it('uses unescaped slashes by default', function () {
-        $serializer = new JsonSerializer();
+        $serializer = new JsonSerializer;
         $data = ['url' => 'https://example.com/path'];
 
         $result = $serializer->encode($data);
@@ -76,7 +76,7 @@ describe('JsonSerializer', function () {
     });
 
     it('uses unescaped unicode by default', function () {
-        $serializer = new JsonSerializer();
+        $serializer = new JsonSerializer;
         $data = ['text' => 'Hello 世界'];
 
         $result = $serializer->encode($data);
@@ -106,7 +106,7 @@ describe('JsonSerializer', function () {
     });
 
     it('returns correct content type', function () {
-        $serializer = new JsonSerializer();
+        $serializer = new JsonSerializer;
 
         expect($serializer->getContentType())->toBe('application/json');
     });
@@ -119,7 +119,7 @@ describe('JsonSerializer', function () {
     });
 
     it('handles array conversion to associative array by default', function () {
-        $serializer = new JsonSerializer();
+        $serializer = new JsonSerializer;
         $json = '["a","b","c"]';
 
         $result = $serializer->decode($json);
@@ -140,7 +140,7 @@ describe('JsonSerializer', function () {
     });
 
     it('provides detailed error information in exceptions', function () {
-        $serializer = new JsonSerializer();
+        $serializer = new JsonSerializer;
         $invalidJson = '{"invalid": }';
 
         try {
@@ -156,7 +156,7 @@ describe('JsonSerializer', function () {
     });
 
     it('handles encoding errors gracefully', function () {
-        $serializer = new JsonSerializer();
+        $serializer = new JsonSerializer;
 
         // Create a resource that cannot be JSON encoded
         $resource = fopen('php://memory', 'r');
@@ -174,7 +174,7 @@ describe('JsonSerializer', function () {
     });
 
     it('handles null values correctly', function () {
-        $serializer = new JsonSerializer();
+        $serializer = new JsonSerializer;
         $data = ['value' => null];
 
         $encoded = $serializer->encode($data);
@@ -184,7 +184,7 @@ describe('JsonSerializer', function () {
     });
 
     it('handles empty arrays correctly', function () {
-        $serializer = new JsonSerializer();
+        $serializer = new JsonSerializer;
         $data = [];
 
         $encoded = $serializer->encode($data);
@@ -194,7 +194,7 @@ describe('JsonSerializer', function () {
     });
 
     it('extracts nested array values with dot notation', function () {
-        $serializer = new JsonSerializer();
+        $serializer = new JsonSerializer;
         $json = '{"items":[{"id":1,"name":"First"},{"id":2,"name":"Second"}]}';
 
         expect($serializer->decode($json, 'items.0.name'))->toBe('First')

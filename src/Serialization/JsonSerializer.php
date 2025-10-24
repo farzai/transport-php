@@ -31,7 +31,7 @@ final class JsonSerializer implements SerializerInterface
      * @param  JsonConfig  $config  The configuration for JSON operations
      */
     public function __construct(
-        private readonly JsonConfig $config = new JsonConfig()
+        private readonly JsonConfig $config = new JsonConfig
     ) {
         //
     }
