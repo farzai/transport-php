@@ -2,6 +2,14 @@
 
 All notable changes to `Transport` will be documented in this file.
 
+## 2.0.0 - 2025-10-24
+
+### What's Changed
+
+* v2: Middleware Architecture and Fluent API by @parsilver in https://github.com/farzai/transport-php/pull/24
+
+**Full Changelog**: https://github.com/farzai/transport-php/compare/1.3.0...2.0.0
+
 ## 1.3.0 - 2024-03-08
 
 ### What's Changed
