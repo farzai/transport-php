@@ -21,6 +21,8 @@ interface ResponseInterface extends PsrResponseInterface
 
     /**
      * Return the response headers.
+     *
+     * @return array<string, array<string>>
      */
     public function headers(): array;
 
@@ -57,7 +59,7 @@ interface ResponseInterface extends PsrResponseInterface
      *
      * @throws \Psr\Http\Client\ClientExceptionInterface
      */
-    public function throw(?callable $callback = null);
+    public function throw(?callable $callback = null): static;
 
     /**
      * Return the psr request.

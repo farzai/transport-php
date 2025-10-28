@@ -109,7 +109,7 @@ class RequestBuilder
      *
      * @param  mixed  $data  The data to encode as JSON
      *
-     * @throws \Farzai\Transport\Exceptions\JsonEncodeException When encoding fails
+     * @throws \Farzai\Transport\Exceptions\SerializationException When encoding fails
      */
     public function withJson(mixed $data): self
     {
@@ -271,7 +271,10 @@ class RequestBuilder
             throw new \RuntimeException('No transport instance available. Use Transport::request() or provide transport in constructor.');
         }
 
-        return $this->transport->sendRequest($this->build());
+        $request = $this->build();
+        $psrResponse = $this->transport->sendRequest($request);
+
+        return new Response($request, $psrResponse, $this->serializer);
     }
 
     // Convenience methods for HTTP verbs

@@ -112,7 +112,7 @@ class ResponseExceptionFactory
         $statusCode = $response->statusCode();
 
         // Try to extract error from JSON response
-        $jsonError = static::extractJsonError($response);
+        $jsonError = self::extractJsonError($response);
         if ($jsonError !== null) {
             return $jsonError;
         }

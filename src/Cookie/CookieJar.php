@@ -7,20 +7,25 @@ namespace Farzai\Transport\Cookie;
 /**
  * Cookie storage and management following RFC 6265.
  *
+ * Design Pattern: Composite Pattern (uses CookieCollectionInterface)
+ * - Delegates storage to collection implementation
+ * - Automatically uses indexed collection for large cookie counts
+ * - Provides high-level cookie management API
+ *
  * This class provides:
  * - Cookie storage with automatic expiration handling
  * - Domain and path-based cookie matching
  * - Session vs persistent cookie handling
- * - Thread-safe cookie operations
+ * - Adaptive performance optimization (auto-indexes at 50+ cookies)
  *
  * @see https://datatracker.ietf.org/doc/html/rfc6265
  */
 class CookieJar
 {
     /**
-     * @var array<string, Cookie>
+     * Underlying cookie collection.
      */
-    private array $cookies = [];
+    private CookieCollectionInterface $collection;
 
     /**
      * Whether to persist session cookies.
@@ -31,10 +36,14 @@ class CookieJar
      * Create a new cookie jar.
      *
      * @param  bool  $persistSessionCookies  Whether to persist session cookies
+     * @param  CookieCollectionInterface|null  $collection  Optional custom collection
      */
-    public function __construct(bool $persistSessionCookies = false)
-    {
+    public function __construct(
+        bool $persistSessionCookies = false,
+        ?CookieCollectionInterface $collection = null
+    ) {
         $this->persistSessionCookies = $persistSessionCookies;
+        $this->collection = $collection ?? CookieCollectionFactory::createAdaptive();
     }
 
     /**
@@ -59,7 +68,7 @@ class CookieJar
             // Still store in memory for current session
         }
 
-        $this->cookies[$cookie->getIdentifier()] = $cookie;
+        $this->collection->add($cookie);
 
         return $this;
     }
@@ -75,13 +84,17 @@ class CookieJar
     {
         $identifier = sprintf('%s|%s|%s', $name, $domain ?? '', $path);
 
-        return $this->cookies[$identifier] ?? null;
+        return $this->collection->get($identifier);
     }
 
     /**
      * Get all cookies matching a URL.
      *
      * Returns cookies sorted by path length (most specific first).
+     *
+     * Performance: This method benefits from indexed collection when cookie count >= 50.
+     * - < 50 cookies: O(n) linear search
+     * - >= 50 cookies: O(1) domain lookup + O(k) where k = cookies for that domain
      *
      * @param  string  $url  The URL to match
      * @param  bool|null  $isSecure  Whether the request is secure (auto-detect if null)
@@ -96,34 +109,10 @@ class CookieJar
             return [];
         }
 
-        $domain = $parsed['host'] ?? '';
-        $path = $parsed['path'] ?? '/';
         $isSecure = $isSecure ?? (($parsed['scheme'] ?? '') === 'https');
 
-        $matching = [];
-
-        foreach ($this->cookies as $cookie) {
-            if ($cookie->matchesUrl($url, $isSecure)) {
-                $matching[] = $cookie;
-            }
-        }
-
-        // Sort by path length (RFC 6265 Section 5.4)
-        usort($matching, function (Cookie $a, Cookie $b) {
-            $lengthA = strlen($a->getPath());
-            $lengthB = strlen($b->getPath());
-
-            if ($lengthA === $lengthB) {
-                // If same length, sort by creation time (older first)
-                // Since we don't track creation time, maintain insertion order
-                return 0;
-            }
-
-            // Longer paths first (more specific)
-            return $lengthB <=> $lengthA;
-        });
-
-        return $matching;
+        // Delegate to collection's optimized findForUrl method
+        return $this->collection->findForUrl($url, $isSecure);
     }
 
     /**
@@ -138,7 +127,7 @@ class CookieJar
             $this->removeExpiredCookies();
         }
 
-        return array_values($this->cookies);
+        return $this->collection->all();
     }
 
     /**
@@ -153,7 +142,7 @@ class CookieJar
     {
         $identifier = sprintf('%s|%s|%s', $name, $domain ?? '', $path);
 
-        unset($this->cookies[$identifier]);
+        $this->collection->remove($identifier);
 
         return $this;
     }
@@ -165,7 +154,7 @@ class CookieJar
      */
     public function clear(): self
     {
-        $this->cookies = [];
+        $this->collection->clear();
 
         return $this;
     }
@@ -177,10 +166,7 @@ class CookieJar
      */
     public function removeExpiredCookies(): self
     {
-        $this->cookies = array_filter(
-            $this->cookies,
-            fn (Cookie $cookie) => ! $cookie->isExpired()
-        );
+        $this->collection->removeExpired();
 
         return $this;
     }
@@ -196,7 +182,7 @@ class CookieJar
             $this->removeExpiredCookies();
         }
 
-        return count($this->cookies);
+        return $this->collection->count();
     }
 
     /**
@@ -206,7 +192,7 @@ class CookieJar
     {
         $this->removeExpiredCookies();
 
-        return empty($this->cookies);
+        return $this->collection->isEmpty();
     }
 
     /**
@@ -280,7 +266,7 @@ class CookieJar
                 'http_only' => $cookie->isHttpOnly(),
                 'same_site' => $cookie->getSameSite(),
             ];
-        }, $this->cookies);
+        }, $this->collection->all());
     }
 
     /**

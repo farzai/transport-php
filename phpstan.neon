@@ -1,0 +1,41 @@
+parameters:
+    level: 8
+    paths:
+        - src
+    excludePaths:
+        - tests
+        - vendor
+
+    # Strict rules for better type safety
+    checkGenericClassInNonGenericObjectType: true
+    checkMissingVarTagTypehint: true
+    treatPhpDocTypesAsCertain: false
+
+    # Exception rules
+    exceptions:
+        check:
+            missingCheckedExceptionInThrows: true
+            tooWideThrowType: true
+        implicitThrows: true
+        checkedExceptionClasses:
+            - Farzai\Transport\Exceptions\TransportException
+
+    # Additional checks
+    reportUnmatchedIgnoredErrors: true
+    reportMaybesInMethodSignatures: true
+    reportStaticMethodSignatures: true
+
+    # Type coverage (optional - uncomment to track type coverage)
+    # type_coverage:
+    #     param_type: 100
+    #     return_type: 100
+    #     property_type: 100
+
+    # Ignore specific errors if needed (add as you encounter false positives)
+    ignoreErrors:
+        # Add patterns here if needed
+        # - '#PHPDoc tag @var for variable#'
+
+    # Bootstrap file if needed
+    # bootstrapFiles:
+    #     - tests/bootstrap.php

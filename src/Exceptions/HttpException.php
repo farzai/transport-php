@@ -111,7 +111,7 @@ class HttpException extends RuntimeException implements RequestExceptionInterfac
             ],
         ];
 
-        if ($this->hasResponse()) {
+        if ($this->response !== null) {
             $context['response'] = [
                 'status_code' => $this->response->getStatusCode(),
                 'reason_phrase' => $this->response->getReasonPhrase(),

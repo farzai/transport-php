@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Farzai\Transport;
 
+use Farzai\Transport\Events\EventDispatcherInterface;
 use Farzai\Transport\Middleware\MiddlewareInterface;
 use Farzai\Transport\Retry\ExponentialBackoffStrategy;
 use Farzai\Transport\Retry\RetryCondition;
@@ -27,7 +28,8 @@ final class TransportConfig
         public readonly int $maxRetries = 0,
         public readonly RetryStrategyInterface $retryStrategy = new ExponentialBackoffStrategy,
         public readonly RetryCondition $retryCondition = new RetryCondition,
-        public readonly array $middlewares = []
+        public readonly array $middlewares = [],
+        public readonly ?EventDispatcherInterface $eventDispatcher = null
     ) {
         $this->validate();
     }
@@ -70,7 +72,8 @@ final class TransportConfig
             maxRetries: $this->maxRetries,
             retryStrategy: $this->retryStrategy,
             retryCondition: $this->retryCondition,
-            middlewares: $this->middlewares
+            middlewares: $this->middlewares,
+            eventDispatcher: $this->eventDispatcher
         );
     }
 
@@ -88,7 +91,8 @@ final class TransportConfig
             maxRetries: $this->maxRetries,
             retryStrategy: $this->retryStrategy,
             retryCondition: $this->retryCondition,
-            middlewares: $this->middlewares
+            middlewares: $this->middlewares,
+            eventDispatcher: $this->eventDispatcher
         );
     }
 
@@ -106,7 +110,8 @@ final class TransportConfig
             maxRetries: $this->maxRetries,
             retryStrategy: $this->retryStrategy,
             retryCondition: $this->retryCondition,
-            middlewares: $this->middlewares
+            middlewares: $this->middlewares,
+            eventDispatcher: $this->eventDispatcher
         );
     }
 
@@ -127,7 +132,8 @@ final class TransportConfig
             maxRetries: $maxRetries,
             retryStrategy: $strategy ?? $this->retryStrategy,
             retryCondition: $condition ?? $this->retryCondition,
-            middlewares: $this->middlewares
+            middlewares: $this->middlewares,
+            eventDispatcher: $this->eventDispatcher
         );
     }
 
@@ -145,7 +151,8 @@ final class TransportConfig
             maxRetries: $this->maxRetries,
             retryStrategy: $this->retryStrategy,
             retryCondition: $this->retryCondition,
-            middlewares: [...$this->middlewares, $middleware]
+            middlewares: [...$this->middlewares, $middleware],
+            eventDispatcher: $this->eventDispatcher
         );
     }
 
@@ -163,7 +170,27 @@ final class TransportConfig
             maxRetries: $this->maxRetries,
             retryStrategy: $this->retryStrategy,
             retryCondition: $this->retryCondition,
-            middlewares: $this->middlewares
+            middlewares: $this->middlewares,
+            eventDispatcher: $this->eventDispatcher
+        );
+    }
+
+    /**
+     * Create a new configuration with an event dispatcher.
+     */
+    public function withEventDispatcher(?EventDispatcherInterface $eventDispatcher): self
+    {
+        return new self(
+            client: $this->client,
+            logger: $this->logger,
+            baseUri: $this->baseUri,
+            headers: $this->headers,
+            timeout: $this->timeout,
+            maxRetries: $this->maxRetries,
+            retryStrategy: $this->retryStrategy,
+            retryCondition: $this->retryCondition,
+            middlewares: $this->middlewares,
+            eventDispatcher: $eventDispatcher
         );
     }
 }

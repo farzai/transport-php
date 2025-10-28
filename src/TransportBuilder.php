@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace Farzai\Transport;
 
 use Farzai\Transport\Cookie\CookieJar;
+use Farzai\Transport\Events\EventDispatcher;
+use Farzai\Transport\Events\EventDispatcherInterface;
+use Farzai\Transport\Events\EventInterface;
 use Farzai\Transport\Factory\ClientFactory;
 use Farzai\Transport\Middleware\CookieMiddleware;
+use Farzai\Transport\Middleware\EventMiddleware;
 use Farzai\Transport\Middleware\LoggingMiddleware;
 use Farzai\Transport\Middleware\MiddlewareInterface;
 use Farzai\Transport\Middleware\RetryMiddleware;
@@ -47,6 +51,8 @@ final class TransportBuilder
     private bool $useDefaultMiddlewares = true;
 
     private ?CookieJar $cookieJar = null;
+
+    private ?EventDispatcherInterface $eventDispatcher = null;
 
     /**
      * Create a new builder instance.
@@ -176,6 +182,53 @@ final class TransportBuilder
     }
 
     /**
+     * Configure event dispatcher for HTTP lifecycle monitoring.
+     *
+     * @param  EventDispatcherInterface|null  $dispatcher  Optional custom event dispatcher
+     * @return $this
+     */
+    public function withEventDispatcher(?EventDispatcherInterface $dispatcher = null): self
+    {
+        $clone = clone $this;
+        $clone->eventDispatcher = $dispatcher ?? new EventDispatcher;
+
+        return $clone;
+    }
+
+    /**
+     * Add an event listener for HTTP lifecycle events.
+     *
+     * This is a convenience method that creates an EventDispatcher if needed
+     * and registers the listener.
+     *
+     * @param  class-string<EventInterface>  $eventClass  The event class to listen for
+     * @param  callable(EventInterface): void  $listener  The listener callable
+     * @return $this
+     *
+     * @example
+     * ```php
+     * $transport = TransportBuilder::make()
+     *     ->addEventListener(ResponseReceivedEvent::class, function ($event) {
+     *         echo "Request completed in {$event->getDuration()}ms\n";
+     *     })
+     *     ->build();
+     * ```
+     */
+    public function addEventListener(string $eventClass, callable $listener): self
+    {
+        $clone = clone $this;
+
+        // Create dispatcher if not exists
+        if ($clone->eventDispatcher === null) {
+            $clone->eventDispatcher = new EventDispatcher;
+        }
+
+        $clone->eventDispatcher->addEventListener($eventClass, $listener);
+
+        return $clone;
+    }
+
+    /**
      * Get the configured client.
      */
     public function getClient(): ?ClientInterface
@@ -214,7 +267,8 @@ final class TransportBuilder
             maxRetries: $this->maxRetries,
             retryStrategy: $this->retryStrategy ?? new ExponentialBackoffStrategy,
             retryCondition: $this->retryCondition ?? RetryCondition::default(),
-            middlewares: $this->buildMiddlewares($logger)
+            middlewares: $this->buildMiddlewares($logger),
+            eventDispatcher: $this->eventDispatcher
         );
 
         return new Transport($config);
@@ -229,7 +283,12 @@ final class TransportBuilder
     {
         $middlewares = [];
 
-        // Add cookie middleware first if configured
+        // Add event middleware first if configured (to track entire lifecycle)
+        if ($this->eventDispatcher !== null) {
+            $middlewares[] = new EventMiddleware($this->eventDispatcher);
+        }
+
+        // Add cookie middleware early if configured
         if ($this->cookieJar !== null) {
             $middlewares[] = new CookieMiddleware($this->cookieJar);
         }
@@ -248,7 +307,8 @@ final class TransportBuilder
                 $middlewares[] = new RetryMiddleware(
                     maxAttempts: $this->maxRetries,
                     strategy: $this->retryStrategy ?? new ExponentialBackoffStrategy,
-                    condition: $this->retryCondition ?? RetryCondition::default()
+                    condition: $this->retryCondition ?? RetryCondition::default(),
+                    eventDispatcher: $this->eventDispatcher
                 );
             }
         }

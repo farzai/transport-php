@@ -167,7 +167,6 @@ final class HttpFactory
      * @return StreamInterface The created stream
      *
      * @throws \RuntimeException If no stream factory is available
-     * @throws \InvalidArgumentException If resource is invalid
      */
     public function createStreamFromResource($resource): StreamInterface
     {
