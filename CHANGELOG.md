@@ -2,6 +2,15 @@
 
 All notable changes to `Transport` will be documented in this file.
 
+## 2.1.0 - 2025-10-30
+
+### What's Changed
+
+* Add Multipart File Upload & Cookie Management Features by @parsilver in https://github.com/farzai/transport-php/pull/25
+* Add event monitoring, streaming uploads, adaptive cookies, and PHPStan analysis by @parsilver in https://github.com/farzai/transport-php/pull/26
+
+**Full Changelog**: https://github.com/farzai/transport-php/compare/2.0.0...2.1.0
+
 ## 2.0.0 - 2025-10-24
 
 ### What's Changed
