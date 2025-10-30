@@ -1,9 +1,21 @@
 {
     "name": "farzai/transport",
-    "description": "A HTTP client for Farzai Package",
+    "description": "A modern, PSR-compliant HTTP client for PHP with middleware architecture, advanced retry strategies, and fluent API for building requests",
     "keywords": [
-        "farzai",
-        "transport"
+        "http",
+        "http-client",
+        "psr-7",
+        "psr-18",
+        "rest-client",
+        "api-client",
+        "middleware",
+        "retry",
+        "cookie",
+        "multipart",
+        "form-data",
+        "file-upload",
+        "fluent-api",
+        "psr"
     ],
     "homepage": "https://github.com/farzai/transport-php",
     "license": "MIT",
@@ -48,7 +60,9 @@
     "scripts": {
         "test": "vendor/bin/pest",
         "test-coverage": "vendor/bin/pest --coverage",
-        "format": "vendor/bin/pint"
+        "format": "vendor/bin/pint",
+        "analyse": "vendor/bin/phpstan analyse --memory-limit=2G",
+        "analyse:baseline": "vendor/bin/phpstan analyse --memory-limit=2G --generate-baseline"
     },
     "config": {
         "sort-packages": true,

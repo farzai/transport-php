@@ -40,9 +40,9 @@ class ResponseBuilder
     /**
      * Create a new response builder instance.
      */
-    public static function create(?HttpFactory $httpFactory = null): ResponseBuilder
+    public static function create(?HttpFactory $httpFactory = null): self
     {
-        return new static($httpFactory);
+        return new self($httpFactory);
     }
 
     /**

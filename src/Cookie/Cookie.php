@@ -22,7 +22,7 @@ final class Cookie
 
     private readonly ?string $domain;
 
-    private readonly ?string $path;
+    private readonly string $path;
 
     private readonly bool $secure;
 

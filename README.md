@@ -167,14 +167,27 @@ $transport = TransportBuilder::make()
             maxDelayMs: 30000,       // Cap at 30 seconds
             useJitter: true          // Add randomization
         ),
-        condition: RetryCondition::default()
+        condition: (new RetryCondition())
             ->onExceptions([NetworkException::class])
     )
     ->build();
 
 // Retries automatically with exponential backoff + jitter
 $response = $transport->get('/unreliable-endpoint')->send();
+
+// Or use default retry condition (retries on any exception)
+$transport = TransportBuilder::make()
+    ->withRetries(
+        maxRetries: 3,
+        condition: RetryCondition::default() // Retries on ANY exception
+    )
+    ->build();
 ```
+
+**Retry Conditions:**
+- `RetryCondition::default()` - Retries on any exception
+- `(new RetryCondition())->onExceptions([...])` - Retry only specific exceptions
+- `(new RetryCondition())->onStatusCodes([500, 502, 503])` - Retry specific HTTP status codes
 
 ### Custom Middleware
 
@@ -290,7 +303,25 @@ $builder->addField('username', 'john_doe')
 $response = $transport->post('/api/upload')
     ->withMultipartBuilder($builder)
     ->send();
+
+// Memory-efficient streaming for large files
+use Farzai\Transport\Multipart\StreamingMultipartBuilder;
+
+$streamBuilder = new StreamingMultipartBuilder();
+$stream = $streamBuilder
+    ->addFile('video', '/path/to/large-video.mp4', 'video.mp4')
+    ->addField('title', 'My Video')
+    ->build();
+
+// Streams file without loading entire content into memory
+$response = $transport->request()
+    ->withBody($stream)
+    ->withHeader('Content-Type', $streamBuilder->getContentType())
+    ->post('/upload')
+    ->send();
 ```
+
+**Note:** The library automatically selects `StreamingMultipartBuilder` for large files (>1MB by default) to optimize memory usage. You can also manually use it for memory-efficient uploads of any size.
 
 ### Cookie Management
 
@@ -344,6 +375,67 @@ file_put_contents('cookies.json', json_encode($data));
 $newJar = new CookieJar();
 $newJar->fromArray(json_decode(file_get_contents('cookies.json'), true));
 ```
+
+**Performance Note:** The cookie management system automatically optimizes for different workloads. For applications with many cookies (50+), it uses indexed collections with O(1) domain lookups. For smaller cookie counts, it uses simpler collections to minimize overhead.
+
+### Event Monitoring
+
+Monitor HTTP requests lifecycle with event listeners:
+
+```php
+use Farzai\Transport\Events\RequestSendingEvent;
+use Farzai\Transport\Events\ResponseReceivedEvent;
+use Farzai\Transport\Events\RequestFailedEvent;
+use Farzai\Transport\Events\RetryAttemptEvent;
+
+$transport = TransportBuilder::make()
+    ->withBaseUri('https://api.example.com')
+    // Track successful responses
+    ->addEventListener(ResponseReceivedEvent::class, function ($event) {
+        printf(
+            "[SUCCESS] %s %s → %d (%.2fms)\n",
+            $event->getMethod(),
+            $event->getUri(),
+            $event->getStatusCode(),
+            $event->getDuration()
+        );
+    })
+    // Track failed requests
+    ->addEventListener(RequestFailedEvent::class, function ($event) {
+        printf(
+            "[ERROR] %s %s failed: %s\n",
+            $event->getMethod(),
+            $event->getUri(),
+            $event->getExceptionMessage()
+        );
+    })
+    // Monitor retry attempts
+    ->addEventListener(RetryAttemptEvent::class, function ($event) {
+        printf(
+            "[RETRY] Attempt %d/%d (delay: %dms)\n",
+            $event->getAttemptNumber(),
+            $event->getMaxAttempts(),
+            $event->getDelay()
+        );
+    })
+    ->withRetries(3)
+    ->build();
+
+// Events are automatically dispatched during request lifecycle
+$response = $transport->get('/api/endpoint')->send();
+```
+
+**Available Events:**
+- `RequestSendingEvent` - Before a request is sent
+- `ResponseReceivedEvent` - After successful response (includes duration metrics)
+- `RequestFailedEvent` - When a request fails with exception details
+- `RetryAttemptEvent` - Before each retry attempt with delay information
+
+**Use Cases:**
+- Performance monitoring and metrics collection
+- Logging and debugging request/response cycles
+- Custom retry notifications
+- Request/response instrumentation
 
 ### Error Handling
 
@@ -442,15 +534,15 @@ $response = ResponseBuilder::create()
 
 ## Documentation
 
-- **[Architecture Guide](docs/architecture.md)** - Deep dive into design patterns and internal architecture
-- **[Migration Guide](docs/migration-from-guzzle.md)** - Migrating from Guzzle or v1.x
 - **[Examples](examples/)** - Practical usage examples:
   - [Basic Usage](examples/basic-usage.php)
   - [Custom HTTP Clients](examples/custom-client.php)
   - [Advanced Retry Logic](examples/advanced-retry.php)
   - [Custom Middleware](examples/middleware-example.php)
   - [File Upload](examples/file-upload.php)
+  - [Streaming Upload](examples/streaming-upload.php)
   - [Cookie Session Management](examples/cookie-session.php)
+  - [Event Monitoring](examples/event-monitoring.php)
 
 ## Architecture
 
@@ -522,7 +614,7 @@ Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed re
 
 ## Contributing
 
-Please see [CONTRIBUTING](https://github.com/farzai/.github/blob/main/CONTRIBUTING.md) for details.
+Please see [CONTRIBUTING](docs/contributing/CONTRIBUTING.md) for details.
 
 ## Security Vulnerabilities
 

@@ -84,7 +84,7 @@ class Response implements ResponseInterface
      * @param  string|null  $key  Optional dot-notation key path (e.g., "user.name")
      * @return mixed The decoded JSON data
      *
-     * @throws \Farzai\Transport\Exceptions\JsonParseException
+     * @throws \Farzai\Transport\Exceptions\SerializationException
      */
     public function json(?string $key = null): mixed
     {
@@ -116,6 +116,8 @@ class Response implements ResponseInterface
      *
      * @param  string|null  $key  Optional dot-notation key path
      * @return mixed The decoded data or null on failure
+     *
+     * @throws \Farzai\Transport\Exceptions\SerializationException
      */
     public function jsonOrNull(?string $key = null): mixed
     {
@@ -131,7 +133,7 @@ class Response implements ResponseInterface
      *
      * @return array<mixed>
      *
-     * @throws \Farzai\Transport\Exceptions\JsonParseException
+     * @throws \Farzai\Transport\Exceptions\SerializationException
      */
     public function toArray(): array
     {
@@ -149,13 +151,11 @@ class Response implements ResponseInterface
      *
      * @param  callable|null  $callback  Custom callback to throw an exception.
      * @return $this
-     *
-     * @throws \Psr\Http\Client\ClientExceptionInterface
      */
-    public function throw(?callable $callback = null)
+    public function throw(?callable $callback = null): static
     {
-        $callback = $callback ?? function (ResponseInterface $response, ?\Exception $e) {
-            if (! $this->isSuccessful()) {
+        $callback = $callback ?? function (ResponseInterface $response, ?\Throwable $e) {
+            if (! $this->isSuccessful() && $e !== null) {
                 throw $e;
             }
 
@@ -226,6 +226,7 @@ class Response implements ResponseInterface
 
     public function withProtocolVersion(string $version): static
     {
+        /** @phpstan-ignore-next-line */
         return new static($this->request, $this->response->withProtocolVersion($version), $this->serializer);
     }
 
@@ -234,6 +235,7 @@ class Response implements ResponseInterface
      */
     public function withHeader(string $name, $value): static
     {
+        /** @phpstan-ignore-next-line */
         return new static($this->request, $this->response->withHeader($name, $value), $this->serializer);
     }
 
@@ -242,21 +244,25 @@ class Response implements ResponseInterface
      */
     public function withAddedHeader(string $name, $value): static
     {
+        /** @phpstan-ignore-next-line */
         return new static($this->request, $this->response->withAddedHeader($name, $value), $this->serializer);
     }
 
     public function withoutHeader(string $name): static
     {
+        /** @phpstan-ignore-next-line */
         return new static($this->request, $this->response->withoutHeader($name), $this->serializer);
     }
 
     public function withBody(StreamInterface $body): static
     {
+        /** @phpstan-ignore-next-line */
         return new static($this->request, $this->response->withBody($body), $this->serializer);
     }
 
     public function withStatus(int $code, string $reasonPhrase = ''): static
     {
+        /** @phpstan-ignore-next-line */
         return new static($this->request, $this->response->withStatus($code, $reasonPhrase), $this->serializer);
     }
 

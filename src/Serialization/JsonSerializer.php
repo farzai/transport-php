@@ -49,11 +49,18 @@ final class JsonSerializer implements SerializerInterface
     public function encode(mixed $data): string
     {
         try {
-            return json_encode(
+            $result = json_encode(
                 value: $data,
                 flags: $this->config->encodeFlags,
-                depth: $this->config->maxDepth
+                depth: max(1, $this->config->maxDepth)
             );
+
+            // With JSON_THROW_ON_ERROR, this should never be false, but satisfy PHPStan
+            if ($result === false) {
+                throw new \JsonException('JSON encoding failed');
+            }
+
+            return $result;
         } catch (\JsonException $e) {
             throw JsonEncodeException::fromJsonException($e, $data, $this->config->maxDepth);
         }
@@ -82,7 +89,7 @@ final class JsonSerializer implements SerializerInterface
             $decoded = json_decode(
                 json: $data,
                 associative: $this->config->associative,
-                depth: $this->config->maxDepth,
+                depth: max(1, $this->config->maxDepth),
                 flags: $this->config->decodeFlags
             );
 
@@ -153,7 +160,9 @@ final class JsonSerializer implements SerializerInterface
 
         // If data is an object, convert to array for extraction
         if (is_object($data)) {
-            return Arr::get(json_decode(json_encode($data), true), $key);
+            $json = json_encode($data, JSON_THROW_ON_ERROR);
+
+            return Arr::get(json_decode($json, true), $key);
         }
 
         // For scalar values, only return if key is empty

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Farzai\Transport\Middleware;
 
+use Farzai\Transport\Events\EventDispatcherInterface;
+use Farzai\Transport\Events\RequestFailedEvent;
+use Farzai\Transport\Events\RetryAttemptEvent;
 use Farzai\Transport\Exceptions\RetryExhaustedException;
 use Farzai\Transport\Retry\RetryCondition;
 use Farzai\Transport\Retry\RetryContext;
@@ -17,9 +20,13 @@ class RetryMiddleware implements MiddlewareInterface
     public function __construct(
         private readonly int $maxAttempts,
         private readonly RetryStrategyInterface $strategy,
-        private readonly RetryCondition $condition
+        private readonly RetryCondition $condition,
+        private readonly ?EventDispatcherInterface $eventDispatcher = null
     ) {}
 
+    /**
+     * @throws \Farzai\Transport\Exceptions\RetryExhaustedException
+     */
     public function handle(RequestInterface $request, callable $next): ResponseInterface
     {
         $context = new RetryContext(
@@ -32,6 +39,18 @@ class RetryMiddleware implements MiddlewareInterface
             try {
                 return $next($request);
             } catch (Throwable $exception) {
+                // Dispatch RequestFailedEvent for each failure attempt
+                if ($this->eventDispatcher !== null) {
+                    $this->eventDispatcher->dispatch(
+                        new RequestFailedEvent(
+                            $request,
+                            $exception,
+                            $context->attempt + 1, // 1-based attempt number
+                            microtime(true)
+                        )
+                    );
+                }
+
                 // Check if we should retry
                 if (! $this->condition->shouldRetry($exception, $context)) {
                     if ($context->attempt > 0) {
@@ -54,6 +73,20 @@ class RetryMiddleware implements MiddlewareInterface
                 // Calculate delay and update context
                 $delay = $this->strategy->getDelay($context);
                 $context = $context->nextAttempt($exception, $delay);
+
+                // Dispatch RetryAttemptEvent before retry
+                if ($this->eventDispatcher !== null) {
+                    $this->eventDispatcher->dispatch(
+                        new RetryAttemptEvent(
+                            $request,
+                            $exception,
+                            $context->attempt + 1, // Current attempt number (after increment)
+                            $this->maxAttempts,
+                            $delay,
+                            microtime(true)
+                        )
+                    );
+                }
 
                 // Sleep before retry (convert milliseconds to microseconds)
                 if ($delay > 0) {
