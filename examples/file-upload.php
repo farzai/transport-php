@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * File Upload Example
  *
@@ -134,7 +136,7 @@ echo str_repeat('-', 50)."\n";
 
 try {
     // Create builder
-    $builder = new MultipartStreamBuilder;
+    $builder = new MultipartStreamBuilder();
 
     // Add various fields
     $builder->addField('user_id', '12345')

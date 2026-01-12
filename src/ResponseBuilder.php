@@ -7,7 +7,7 @@ namespace Farzai\Transport;
 use Farzai\Transport\Factory\HttpFactory;
 use Psr\Http\Message\ResponseInterface as PsrResponseInterface;
 
-class ResponseBuilder
+final class ResponseBuilder
 {
     protected int $statusCode = 200;
 
@@ -16,10 +16,7 @@ class ResponseBuilder
      */
     protected array $headers = [];
 
-    /**
-     * @var mixed
-     */
-    protected $body;
+    protected mixed $body = null;
 
     protected string $version = '1.1';
 
@@ -58,7 +55,7 @@ class ResponseBuilder
     /**
      * Set the response headers.
      *
-     * @param  array<string, array<string>>  $headers
+     * @param  array<string, string|array<string>>  $headers
      */
     public function withHeaders(array $headers): self
     {
@@ -72,9 +69,9 @@ class ResponseBuilder
     /**
      * Add a header to the response.
      *
-     * @param  mixed  $value
+     * @param  string|array<string>  $value
      */
-    public function withHeader(string $name, $value): self
+    public function withHeader(string $name, string|array $value): self
     {
         if (! isset($this->headers[$name])) {
             $this->headers[$name] = [];
@@ -90,10 +87,8 @@ class ResponseBuilder
 
     /**
      * Set the response body.
-     *
-     * @param  mixed  $body
      */
-    public function withBody($body): self
+    public function withBody(mixed $body): self
     {
         $this->body = $body;
 

@@ -62,20 +62,20 @@ final class ClientFactory
      */
     public static function create(?LoggerInterface $logger = null): ClientInterface
     {
-        $logger = $logger ?? new NullLogger;
+        $logger = $logger ?? new NullLogger();
 
         // Try Symfony HTTP Client first (modern, async support, HTTP/2)
         if (class_exists('Symfony\Component\HttpClient\Psr18Client')) {
             $logger->debug('ClientFactory: Using Symfony HTTP Client');
 
-            return new \Symfony\Component\HttpClient\Psr18Client;
+            return new \Symfony\Component\HttpClient\Psr18Client();
         }
 
         // Try Guzzle HTTP Client (popular, widely used)
         if (class_exists('GuzzleHttp\Client')) {
             $logger->debug('ClientFactory: Using Guzzle HTTP Client');
 
-            return new \GuzzleHttp\Client;
+            return new \GuzzleHttp\Client();
         }
 
         // Fallback to PSR-18 discovery (will find any installed PSR-18 client)
@@ -158,7 +158,7 @@ final class ClientFactory
             return new \Symfony\Component\HttpClient\Psr18Client($httpClient);
         }
 
-        return new \Symfony\Component\HttpClient\Psr18Client;
+        return new \Symfony\Component\HttpClient\Psr18Client();
     }
 
     /**

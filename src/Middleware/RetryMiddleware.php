@@ -18,7 +18,8 @@ class RetryMiddleware implements MiddlewareInterface
         private readonly int $maxAttempts,
         private readonly RetryStrategyInterface $strategy,
         private readonly RetryCondition $condition
-    ) {}
+    ) {
+    }
 
     public function handle(RequestInterface $request, callable $next): ResponseInterface
     {

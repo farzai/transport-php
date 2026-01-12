@@ -37,6 +37,20 @@ use Throwable;
 class HttpException extends RuntimeException implements RequestExceptionInterface
 {
     /**
+     * Headers that should be redacted from context for security.
+     *
+     * @var array<string>
+     */
+    private const SENSITIVE_HEADERS = [
+        'authorization',
+        'cookie',
+        'set-cookie',
+        'x-api-key',
+        'x-auth-token',
+        'x-csrf-token',
+        'proxy-authorization',
+    ];
+    /**
      * Create a new HTTP exception.
      *
      * @param  string  $message  Error message
@@ -98,6 +112,8 @@ class HttpException extends RuntimeException implements RequestExceptionInterfac
     /**
      * Get a detailed error context for logging.
      *
+     * Sensitive headers (Authorization, Cookie, etc.) are redacted for security.
+     *
      * @return array<string, mixed> Error context
      */
     public function getContext(): array
@@ -107,18 +123,40 @@ class HttpException extends RuntimeException implements RequestExceptionInterfac
             'request' => [
                 'method' => $this->request->getMethod(),
                 'uri' => (string) $this->request->getUri(),
-                'headers' => $this->request->getHeaders(),
+                'headers' => $this->sanitizeHeaders($this->request->getHeaders()),
             ],
         ];
 
-        if ($this->hasResponse()) {
+        $response = $this->response;
+        if ($response !== null) {
             $context['response'] = [
-                'status_code' => $this->response->getStatusCode(),
-                'reason_phrase' => $this->response->getReasonPhrase(),
-                'headers' => $this->response->getHeaders(),
+                'status_code' => $response->getStatusCode(),
+                'reason_phrase' => $response->getReasonPhrase(),
+                'headers' => $this->sanitizeHeaders($response->getHeaders()),
             ];
         }
 
         return $context;
+    }
+
+    /**
+     * Sanitize headers by redacting sensitive values.
+     *
+     * @param  array<string, array<string>>  $headers  The headers to sanitize
+     * @return array<string, array<string>>  The sanitized headers
+     */
+    private function sanitizeHeaders(array $headers): array
+    {
+        $sanitized = [];
+
+        foreach ($headers as $name => $values) {
+            if (in_array(strtolower($name), self::SENSITIVE_HEADERS, true)) {
+                $sanitized[$name] = ['[REDACTED]'];
+            } else {
+                $sanitized[$name] = $values;
+            }
+        }
+
+        return $sanitized;
     }
 }

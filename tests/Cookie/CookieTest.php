@@ -184,11 +184,41 @@ describe('Cookie', function () {
         expect($cookie->matchesDomain('example.com'))->toBeTrue();
         expect($cookie->matchesDomain('other.com'))->toBeTrue();
     });
+
+    it('creates secure cookie with Cookie::secure() factory method', function () {
+        $cookie = Cookie::secure('session', 'abc123');
+
+        expect($cookie->getName())->toBe('session')
+            ->and($cookie->getValue())->toBe('abc123')
+            ->and($cookie->isSecure())->toBeTrue()
+            ->and($cookie->isHttpOnly())->toBeTrue()
+            ->and($cookie->getSameSite())->toBe('Lax');
+    });
+
+    it('creates secure cookie with all parameters via secure() factory', function () {
+        $expiresAt = time() + 3600;
+        $cookie = Cookie::secure(
+            'auth_token',
+            'xyz789',
+            $expiresAt,
+            'example.com',
+            '/api'
+        );
+
+        expect($cookie->getName())->toBe('auth_token')
+            ->and($cookie->getValue())->toBe('xyz789')
+            ->and($cookie->getExpiresAt())->toBe($expiresAt)
+            ->and($cookie->getDomain())->toBe('example.com')
+            ->and($cookie->getPath())->toBe('/api')
+            ->and($cookie->isSecure())->toBeTrue()
+            ->and($cookie->isHttpOnly())->toBeTrue()
+            ->and($cookie->getSameSite())->toBe('Lax');
+    });
 });
 
 describe('CookieJar', function () {
     it('stores and retrieves cookies', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $cookie = new Cookie('session', 'abc123', null, 'example.com');
 
         $jar->setCookie($cookie);
@@ -199,7 +229,7 @@ describe('CookieJar', function () {
     });
 
     it('replaces cookie with same name, domain, and path', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $cookie1 = new Cookie('token', 'old', null, 'example.com');
         $cookie2 = new Cookie('token', 'new', null, 'example.com');
 
@@ -212,7 +242,7 @@ describe('CookieJar', function () {
     });
 
     it('stores multiple cookies with different attributes', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
 
         $jar->setCookie(new Cookie('token', 'value1', null, 'example.com', '/'));
         $jar->setCookie(new Cookie('token', 'value2', null, 'example.com', '/api'));
@@ -222,7 +252,7 @@ describe('CookieJar', function () {
     });
 
     it('gets cookies for URL', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
 
         $jar->setCookie(new Cookie('cookie1', 'value1', null, 'example.com', '/'));
         $jar->setCookie(new Cookie('cookie2', 'value2', null, 'example.com', '/api'));
@@ -236,7 +266,7 @@ describe('CookieJar', function () {
     });
 
     it('respects secure flag in URL matching', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $secureCookie = new Cookie('secure', 'value', null, 'example.com', '/', true);
 
         $jar->setCookie($secureCookie);
@@ -249,7 +279,7 @@ describe('CookieJar', function () {
     });
 
     it('removes expired cookies automatically', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
 
         $jar->setCookie(new Cookie('expired', 'value', time() - 3600));
         $jar->setCookie(new Cookie('valid', 'value', time() + 3600));
@@ -258,7 +288,7 @@ describe('CookieJar', function () {
     });
 
     it('removes specific cookie', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $jar->setCookie(new Cookie('token', 'value', null, 'example.com'));
 
         $jar->removeCookie('token', 'example.com');
@@ -267,7 +297,7 @@ describe('CookieJar', function () {
     });
 
     it('clears all cookies', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
 
         $jar->setCookie(new Cookie('cookie1', 'value1'));
         $jar->setCookie(new Cookie('cookie2', 'value2'));
@@ -279,7 +309,7 @@ describe('CookieJar', function () {
     });
 
     it('adds cookies from Set-Cookie headers', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $headers = [
             'session_id=abc123; Path=/; HttpOnly',
             'token=xyz789; Domain=example.com; Secure',
@@ -291,7 +321,7 @@ describe('CookieJar', function () {
     });
 
     it('generates Cookie header for URL', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
 
         $jar->setCookie(new Cookie('session', 'abc123', null, 'example.com'));
         $jar->setCookie(new Cookie('token', 'xyz789', null, 'example.com'));
@@ -304,7 +334,7 @@ describe('CookieJar', function () {
     });
 
     it('returns null when no cookies match URL', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $jar->setCookie(new Cookie('test', 'value', null, 'example.com'));
 
         $header = $jar->getCookieHeaderForUrl('https://other.com/');
@@ -313,13 +343,13 @@ describe('CookieJar', function () {
     });
 
     it('exports and imports cookies', function () {
-        $jar1 = new CookieJar;
+        $jar1 = new CookieJar();
         $jar1->setCookie(new Cookie('cookie1', 'value1', null, 'example.com'));
         $jar1->setCookie(new Cookie('cookie2', 'value2', time() + 3600, 'example.com'));
 
         $data = $jar1->toArray();
 
-        $jar2 = new CookieJar;
+        $jar2 = new CookieJar();
         $jar2->fromArray($data);
 
         expect($jar2->count())->toBe(2);
@@ -336,7 +366,7 @@ describe('CookieJar', function () {
     });
 
     it('skips invalid cookies when adding from headers', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $headers = [
             'valid=value; Path=/',
             '', // Empty header
@@ -350,7 +380,7 @@ describe('CookieJar', function () {
     });
 
     it('sorts cookies by path specificity', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
 
         $jar->setCookie(new Cookie('root', 'value', null, 'example.com', '/'));
         $jar->setCookie(new Cookie('api', 'value', null, 'example.com', '/api'));
@@ -365,7 +395,7 @@ describe('CookieJar', function () {
     });
 
     it('handles invalid URL in getCookiesForUrl', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $jar->setCookie(new Cookie('test', 'value', null, 'example.com'));
 
         // Test with an invalid URL that would cause parse_url to return false
@@ -375,7 +405,7 @@ describe('CookieJar', function () {
     });
 
     it('getAllCookies can include expired cookies', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $jar->setCookie(new Cookie('valid', 'value', time() + 3600));
         $jar->setCookie(new Cookie('expired', 'value', time() - 3600));
 

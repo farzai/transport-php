@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Custom HTTP Client Example
  *
@@ -116,8 +118,7 @@ echo str_repeat('-', 50)."\n";
 
 try {
     // Create a simple logger
-    $logger = new class extends \Psr\Log\AbstractLogger
-    {
+    $logger = new class () extends \Psr\Log\AbstractLogger {
         public function log($level, $message, array $context = []): void
         {
             $contextStr = ! empty($context) ? ' '.json_encode($context) : '';

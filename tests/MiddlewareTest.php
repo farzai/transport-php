@@ -13,9 +13,10 @@ describe('MiddlewareStack', function () {
     it('can execute middleware in correct order', function () {
         $order = [];
 
-        $middleware1 = new class($order) implements \Farzai\Transport\Middleware\MiddlewareInterface
-        {
-            public function __construct(private array &$order) {}
+        $middleware1 = new class ($order) implements \Farzai\Transport\Middleware\MiddlewareInterface {
+            public function __construct(private array &$order)
+            {
+            }
 
             public function handle(\Psr\Http\Message\RequestInterface $request, callable $next): \Psr\Http\Message\ResponseInterface
             {
@@ -27,9 +28,10 @@ describe('MiddlewareStack', function () {
             }
         };
 
-        $middleware2 = new class($order) implements \Farzai\Transport\Middleware\MiddlewareInterface
-        {
-            public function __construct(private array &$order) {}
+        $middleware2 = new class ($order) implements \Farzai\Transport\Middleware\MiddlewareInterface {
+            public function __construct(private array &$order)
+            {
+            }
 
             public function handle(\Psr\Http\Message\RequestInterface $request, callable $next): \Psr\Http\Message\ResponseInterface
             {
@@ -54,8 +56,7 @@ describe('MiddlewareStack', function () {
     });
 
     it('can modify request in middleware', function () {
-        $middleware = new class implements \Farzai\Transport\Middleware\MiddlewareInterface
-        {
+        $middleware = new class () implements \Farzai\Transport\Middleware\MiddlewareInterface {
             public function handle(\Psr\Http\Message\RequestInterface $request, callable $next): \Psr\Http\Message\ResponseInterface
             {
                 $request = $request->withHeader('X-Modified', 'true');
@@ -75,8 +76,7 @@ describe('MiddlewareStack', function () {
     });
 
     it('can modify response in middleware', function () {
-        $middleware = new class implements \Farzai\Transport\Middleware\MiddlewareInterface
-        {
+        $middleware = new class () implements \Farzai\Transport\Middleware\MiddlewareInterface {
             public function handle(\Psr\Http\Message\RequestInterface $request, callable $next): \Psr\Http\Message\ResponseInterface
             {
                 $response = $next($request);
@@ -94,8 +94,7 @@ describe('MiddlewareStack', function () {
     });
 
     it('can push middleware to stack', function () {
-        $middleware1 = new class implements \Farzai\Transport\Middleware\MiddlewareInterface
-        {
+        $middleware1 = new class () implements \Farzai\Transport\Middleware\MiddlewareInterface {
             public function handle(\Psr\Http\Message\RequestInterface $request, callable $next): \Psr\Http\Message\ResponseInterface
             {
                 $request = $request->withHeader('X-First', 'true');
@@ -104,8 +103,7 @@ describe('MiddlewareStack', function () {
             }
         };
 
-        $middleware2 = new class implements \Farzai\Transport\Middleware\MiddlewareInterface
-        {
+        $middleware2 = new class () implements \Farzai\Transport\Middleware\MiddlewareInterface {
             public function handle(\Psr\Http\Message\RequestInterface $request, callable $next): \Psr\Http\Message\ResponseInterface
             {
                 $request = $request->withHeader('X-Second', 'true');
@@ -114,7 +112,7 @@ describe('MiddlewareStack', function () {
             }
         };
 
-        $stack = new MiddlewareStack;
+        $stack = new MiddlewareStack();
         $result = $stack->push($middleware1);
         $stack->push($middleware2);
 
@@ -131,7 +129,7 @@ describe('MiddlewareStack', function () {
     });
 
     it('can create empty middleware stack', function () {
-        $stack = new MiddlewareStack;
+        $stack = new MiddlewareStack();
 
         $request = new Request('GET', 'https://example.com');
         $response = $stack->handle($request, fn () => new Response(200));
@@ -174,6 +172,37 @@ describe('LoggingMiddleware', function () {
         } catch (\RuntimeException $e) {
             expect($e->getMessage())->toBe('Network error');
         }
+    });
+
+    it('sanitizes sensitive headers in logs', function () {
+        $capturedContext = null;
+
+        $logger = Mockery::mock(LoggerInterface::class);
+        $logger->shouldReceive('info')
+            ->once()
+            ->with(Mockery::pattern('/\[REQUEST\]/'), Mockery::capture($capturedContext));
+        $logger->shouldReceive('info')
+            ->once()
+            ->with(Mockery::pattern('/\[RESPONSE\]/'), Mockery::type('array'));
+
+        $middleware = new LoggingMiddleware($logger);
+
+        $request = new Request('GET', 'https://example.com', [
+            'Authorization' => 'Bearer secret-token-12345',
+            'X-Api-Key' => 'my-api-key',
+            'Cookie' => 'session=abc123',
+            'X-Custom' => 'visible-value',
+        ]);
+
+        $middleware->handle($request, fn () => new Response(200));
+
+        // Verify sensitive headers are redacted
+        expect($capturedContext['headers']['Authorization'])->toBe(['[REDACTED]']);
+        expect($capturedContext['headers']['X-Api-Key'])->toBe(['[REDACTED]']);
+        expect($capturedContext['headers']['Cookie'])->toBe(['[REDACTED]']);
+
+        // Verify non-sensitive headers are preserved
+        expect($capturedContext['headers']['X-Custom'])->toBe(['visible-value']);
     });
 });
 

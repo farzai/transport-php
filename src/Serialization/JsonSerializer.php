@@ -31,7 +31,7 @@ final class JsonSerializer implements SerializerInterface
      * @param  JsonConfig  $config  The configuration for JSON operations
      */
     public function __construct(
-        private readonly JsonConfig $config = new JsonConfig
+        private readonly JsonConfig $config = new JsonConfig()
     ) {
         //
     }
@@ -49,11 +49,19 @@ final class JsonSerializer implements SerializerInterface
     public function encode(mixed $data): string
     {
         try {
-            return json_encode(
+            /** @var int<1, max> $depth */
+            $depth = max(1, $this->config->maxDepth);
+            $result = json_encode(
                 value: $data,
                 flags: $this->config->encodeFlags,
-                depth: $this->config->maxDepth
+                depth: $depth
             );
+
+            if ($result === false) {
+                throw new \JsonException(json_last_error_msg(), json_last_error());
+            }
+
+            return $result;
         } catch (\JsonException $e) {
             throw JsonEncodeException::fromJsonException($e, $data, $this->config->maxDepth);
         }
@@ -79,10 +87,12 @@ final class JsonSerializer implements SerializerInterface
         }
 
         try {
+            /** @var int<1, max> $depth */
+            $depth = max(1, $this->config->maxDepth);
             $decoded = json_decode(
                 json: $data,
                 associative: $this->config->associative,
-                depth: $this->config->maxDepth,
+                depth: $depth,
                 flags: $this->config->decodeFlags
             );
 
@@ -153,10 +163,56 @@ final class JsonSerializer implements SerializerInterface
 
         // If data is an object, convert to array for extraction
         if (is_object($data)) {
-            return Arr::get(json_decode(json_encode($data), true), $key);
+            return Arr::get($this->objectToArray($data), $key);
         }
 
         // For scalar values, only return if key is empty
         return $key === '' ? $data : null;
+    }
+
+    /**
+     * Recursively convert an object to an associative array.
+     *
+     * @param  object  $object  The object to convert
+     * @return array<string, mixed>  The converted array
+     */
+    private function objectToArray(object $object): array
+    {
+        $result = [];
+
+        foreach (get_object_vars($object) as $key => $value) {
+            if (is_object($value)) {
+                $result[$key] = $this->objectToArray($value);
+            } elseif (is_array($value)) {
+                $result[$key] = $this->convertArrayValues($value);
+            } else {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Recursively convert array values, handling nested objects.
+     *
+     * @param  array<mixed>  $array  The array to convert
+     * @return array<mixed>  The converted array
+     */
+    private function convertArrayValues(array $array): array
+    {
+        $result = [];
+
+        foreach ($array as $key => $value) {
+            if (is_object($value)) {
+                $result[$key] = $this->objectToArray($value);
+            } elseif (is_array($value)) {
+                $result[$key] = $this->convertArrayValues($value);
+            } else {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
     }
 }

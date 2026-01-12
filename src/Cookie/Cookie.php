@@ -22,7 +22,7 @@ final class Cookie
 
     private readonly ?string $domain;
 
-    private readonly ?string $path;
+    private readonly string $path;
 
     private readonly bool $secure;
 
@@ -41,6 +41,8 @@ final class Cookie
      * @param  bool  $secure  Secure flag
      * @param  bool  $httpOnly  HttpOnly flag
      * @param  string|null  $sameSite  SameSite attribute (Strict, Lax, None, or null)
+     *
+     * @see Cookie::secure() For creating cookies with secure defaults (recommended)
      */
     public function __construct(
         string $name,
@@ -63,6 +65,37 @@ final class Cookie
         $this->secure = $secure;
         $this->httpOnly = $httpOnly;
         $this->sameSite = $sameSite;
+    }
+
+    /**
+     * Create a cookie with secure defaults.
+     *
+     * Uses secure=true, httpOnly=true, sameSite='Lax' for security best practices.
+     * This is the recommended way to create cookies for security-sensitive applications.
+     *
+     * @param  string  $name  Cookie name
+     * @param  string  $value  Cookie value
+     * @param  int|null  $expiresAt  Unix timestamp when cookie expires (null = session cookie)
+     * @param  string|null  $domain  Cookie domain
+     * @param  string  $path  Cookie path
+     */
+    public static function secure(
+        string $name,
+        string $value,
+        ?int $expiresAt = null,
+        ?string $domain = null,
+        string $path = '/',
+    ): self {
+        return new self(
+            name: $name,
+            value: $value,
+            expiresAt: $expiresAt,
+            domain: $domain,
+            path: $path,
+            secure: true,
+            httpOnly: true,
+            sameSite: 'Lax',
+        );
     }
 
     /**

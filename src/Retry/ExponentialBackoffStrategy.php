@@ -17,7 +17,8 @@ class ExponentialBackoffStrategy implements RetryStrategyInterface
         private readonly float $multiplier = 2.0,
         private readonly int $maxDelayMs = 30000,
         private readonly bool $useJitter = true
-    ) {}
+    ) {
+    }
 
     public function getDelay(RetryContext $context): int
     {

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Custom Middleware Example
  *
@@ -25,7 +27,8 @@ class CustomHeaderMiddleware implements MiddlewareInterface
     public function __construct(
         private readonly string $headerName,
         private readonly string $headerValue
-    ) {}
+    ) {
+    }
 
     public function handle(RequestInterface $request, callable $next): ResponseInterface
     {
@@ -87,7 +90,7 @@ class DetailedLoggingMiddleware implements MiddlewareInterface
 $transport2 = TransportBuilder::make()
     ->withBaseUri('https://jsonplaceholder.typicode.com')
     ->withoutDefaultMiddlewares() // Disable default logging
-    ->withMiddleware(new DetailedLoggingMiddleware)
+    ->withMiddleware(new DetailedLoggingMiddleware())
     ->build();
 
 try {
@@ -105,7 +108,8 @@ class ApiKeyAuthMiddleware implements MiddlewareInterface
     public function __construct(
         private readonly string $apiKey,
         private readonly string $headerName = 'X-API-Key'
-    ) {}
+    ) {
+    }
 
     public function handle(RequestInterface $request, callable $next): ResponseInterface
     {
@@ -138,7 +142,8 @@ class SimpleCacheMiddleware implements MiddlewareInterface
 
     public function __construct(
         private readonly int $ttlSeconds = 60
-    ) {}
+    ) {
+    }
 
     public function handle(RequestInterface $request, callable $next): ResponseInterface
     {
@@ -204,7 +209,8 @@ class RateLimitMiddleware implements MiddlewareInterface
     public function __construct(
         private readonly int $maxRequests = 10,
         private readonly int $perSeconds = 60
-    ) {}
+    ) {
+    }
 
     public function handle(RequestInterface $request, callable $next): ResponseInterface
     {

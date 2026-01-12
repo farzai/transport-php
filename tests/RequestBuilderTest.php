@@ -335,6 +335,54 @@ describe('RequestBuilder with Transport', function () {
     });
 });
 
+describe('RequestBuilder CRLF validation', function () {
+    it('throws exception for header value with CR character', function () {
+        expect(fn () => RequestBuilder::get('/users')
+            ->withHeader('X-Custom', "value\rEvil"))
+            ->toThrow(\InvalidArgumentException::class, 'contains invalid characters');
+    });
+
+    it('throws exception for header value with LF character', function () {
+        expect(fn () => RequestBuilder::get('/users')
+            ->withHeader('X-Custom', "value\nEvil"))
+            ->toThrow(\InvalidArgumentException::class, 'contains invalid characters');
+    });
+
+    it('throws exception for header value with CRLF sequence', function () {
+        expect(fn () => RequestBuilder::get('/users')
+            ->withHeader('X-Custom', "value\r\nEvil: header"))
+            ->toThrow(\InvalidArgumentException::class, 'contains invalid characters');
+    });
+
+    it('throws exception for header name with CRLF', function () {
+        expect(fn () => RequestBuilder::get('/users')
+            ->withHeader("X-Custom\r\n", 'value'))
+            ->toThrow(\InvalidArgumentException::class, 'contains invalid characters');
+    });
+
+    it('throws exception for header array value with CRLF', function () {
+        expect(fn () => RequestBuilder::get('/users')
+            ->withHeader('X-Custom', ['valid', "invalid\r\nheader"]))
+            ->toThrow(\InvalidArgumentException::class, 'contains invalid characters');
+    });
+
+    it('throws exception for withHeaders with CRLF', function () {
+        expect(fn () => RequestBuilder::get('/users')
+            ->withHeaders(['X-Custom' => "value\r\nEvil: header"]))
+            ->toThrow(\InvalidArgumentException::class, 'contains invalid characters');
+    });
+
+    it('allows valid header values', function () {
+        $request = RequestBuilder::get('/users')
+            ->withHeader('X-Custom', 'valid-value')
+            ->withHeader('Accept', 'application/json')
+            ->build();
+
+        expect($request->getHeaderLine('X-Custom'))->toBe('valid-value')
+            ->and($request->getHeaderLine('Accept'))->toBe('application/json');
+    });
+});
+
 afterEach(function () {
     Mockery::close();
 });

@@ -12,7 +12,7 @@ use Psr\Http\Message\RequestInterface as PsrRequestInterface;
 use Psr\Http\Message\ResponseInterface as PsrResponseInterface;
 use Psr\Http\Message\StreamInterface;
 
-class Response implements ResponseInterface
+final class Response implements ResponseInterface
 {
     protected mixed $jsonDecoded = null;
 
@@ -152,10 +152,10 @@ class Response implements ResponseInterface
      *
      * @throws \Psr\Http\Client\ClientExceptionInterface
      */
-    public function throw(?callable $callback = null)
+    public function throw(?callable $callback = null): static
     {
         $callback = $callback ?? function (ResponseInterface $response, ?\Exception $e) {
-            if (! $this->isSuccessful()) {
+            if (! $this->isSuccessful() && $e !== null) {
                 throw $e;
             }
 

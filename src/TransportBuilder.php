@@ -53,7 +53,7 @@ final class TransportBuilder
      */
     public static function make(): static
     {
-        return new self;
+        return new self();
     }
 
     /**
@@ -160,7 +160,7 @@ final class TransportBuilder
     public function withCookieJar(?CookieJar $cookieJar = null): self
     {
         $clone = clone $this;
-        $clone->cookieJar = $cookieJar ?? new CookieJar;
+        $clone->cookieJar = $cookieJar ?? new CookieJar();
 
         return $clone;
     }
@@ -199,7 +199,7 @@ final class TransportBuilder
      */
     public function build(): Transport
     {
-        $logger = $this->logger ?? new NullLogger;
+        $logger = $this->logger ?? new NullLogger();
 
         // Auto-detect client if not explicitly set
         // This allows users to use any PSR-18 client without configuration
@@ -212,7 +212,7 @@ final class TransportBuilder
             headers: $this->headers,
             timeout: $this->timeout,
             maxRetries: $this->maxRetries,
-            retryStrategy: $this->retryStrategy ?? new ExponentialBackoffStrategy,
+            retryStrategy: $this->retryStrategy ?? new ExponentialBackoffStrategy(),
             retryCondition: $this->retryCondition ?? RetryCondition::default(),
             middlewares: $this->buildMiddlewares($logger)
         );
@@ -247,7 +247,7 @@ final class TransportBuilder
             if ($this->maxRetries > 0) {
                 $middlewares[] = new RetryMiddleware(
                     maxAttempts: $this->maxRetries,
-                    strategy: $this->retryStrategy ?? new ExponentialBackoffStrategy,
+                    strategy: $this->retryStrategy ?? new ExponentialBackoffStrategy(),
                     condition: $this->retryCondition ?? RetryCondition::default()
                 );
             }

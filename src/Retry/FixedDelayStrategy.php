@@ -11,7 +11,8 @@ class FixedDelayStrategy implements RetryStrategyInterface
      */
     public function __construct(
         private readonly int $delayMs = 1000
-    ) {}
+    ) {
+    }
 
     public function getDelay(RetryContext $context): int
     {

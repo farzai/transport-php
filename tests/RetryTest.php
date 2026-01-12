@@ -91,19 +91,19 @@ describe('RetryCondition', function () {
         $request = new Request('GET', 'https://example.com');
         $context = new RetryContext($request, 0, 3);
 
-        expect($condition->shouldRetry(new \RuntimeException, $context))->toBeTrue()
-            ->and($condition->shouldRetry(new \Exception, $context))->toBeTrue();
+        expect($condition->shouldRetry(new \RuntimeException(), $context))->toBeTrue()
+            ->and($condition->shouldRetry(new \Exception(), $context))->toBeTrue();
     });
 
     it('can retry on specific exception types', function () {
-        $condition = new RetryCondition;
+        $condition = new RetryCondition();
         $condition->onExceptions([\RuntimeException::class]);
 
         $request = new Request('GET', 'https://example.com');
         $context = new RetryContext($request, 0, 3);
 
-        expect($condition->shouldRetry(new \RuntimeException, $context))->toBeTrue()
-            ->and($condition->shouldRetry(new \LogicException, $context))->toBeFalse();
+        expect($condition->shouldRetry(new \RuntimeException(), $context))->toBeTrue()
+            ->and($condition->shouldRetry(new \LogicException(), $context))->toBeFalse();
     });
 
     it('does not retry when no retries left', function () {
@@ -112,11 +112,11 @@ describe('RetryCondition', function () {
         $request = new Request('GET', 'https://example.com');
         $context = new RetryContext($request, 3, 3); // At max attempts
 
-        expect($condition->shouldRetry(new \RuntimeException, $context))->toBeFalse();
+        expect($condition->shouldRetry(new \RuntimeException(), $context))->toBeFalse();
     });
 
     it('can use custom condition callback', function () {
-        $condition = new RetryCondition;
+        $condition = new RetryCondition();
         $condition->when(function ($exception, $context) {
             return $exception->getMessage() === 'retryable';
         });
@@ -129,7 +129,7 @@ describe('RetryCondition', function () {
     });
 
     it('does not retry when no conditions are set', function () {
-        $condition = new RetryCondition; // No conditions added
+        $condition = new RetryCondition(); // No conditions added
 
         $request = new Request('GET', 'https://example.com');
         $context = new RetryContext($request, 0, 3);
@@ -223,7 +223,7 @@ describe('RetryMiddleware', function () {
     it('does not retry when condition not met', function () {
         $attempts = 0;
         $strategy = new FixedDelayStrategy(0);
-        $condition = new RetryCondition;
+        $condition = new RetryCondition();
         $condition->onExceptions([\LogicException::class]); // Only retry LogicException
 
         $middleware = new RetryMiddleware(3, $strategy, $condition);

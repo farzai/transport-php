@@ -11,7 +11,8 @@ class TimeoutMiddleware implements MiddlewareInterface
 {
     public function __construct(
         private readonly int $timeoutSeconds
-    ) {}
+    ) {
+    }
 
     public function handle(RequestInterface $request, callable $next): ResponseInterface
     {

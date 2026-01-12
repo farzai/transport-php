@@ -69,9 +69,13 @@ class RequestBuilder
      * Add a header.
      *
      * @param  string|array<string>  $value
+     *
+     * @throws \InvalidArgumentException If header contains invalid characters (CR/LF)
      */
     public function withHeader(string $name, string|array $value): self
     {
+        $this->validateHeaderValue($name, $value);
+
         $clone = clone $this;
         $clone->headers[$name] = $value;
 
@@ -82,9 +86,15 @@ class RequestBuilder
      * Add multiple headers.
      *
      * @param  array<string, string|array<string>>  $headers
+     *
+     * @throws \InvalidArgumentException If any header contains invalid characters (CR/LF)
      */
     public function withHeaders(array $headers): self
     {
+        foreach ($headers as $name => $value) {
+            $this->validateHeaderValue($name, $value);
+        }
+
         $clone = clone $this;
         $clone->headers = array_merge($clone->headers, $headers);
 
@@ -271,7 +281,7 @@ class RequestBuilder
             throw new \RuntimeException('No transport instance available. Use Transport::request() or provide transport in constructor.');
         }
 
-        return $this->transport->sendRequest($this->build());
+        return $this->transport->send($this->build());
     }
 
     // Convenience methods for HTTP verbs
@@ -281,7 +291,7 @@ class RequestBuilder
      */
     public static function get(string|UriInterface $uri): self
     {
-        return (new self)->method('GET')->uri($uri);
+        return (new self())->method('GET')->uri($uri);
     }
 
     /**
@@ -289,7 +299,7 @@ class RequestBuilder
      */
     public static function post(string|UriInterface $uri): self
     {
-        return (new self)->method('POST')->uri($uri);
+        return (new self())->method('POST')->uri($uri);
     }
 
     /**
@@ -297,7 +307,7 @@ class RequestBuilder
      */
     public static function put(string|UriInterface $uri): self
     {
-        return (new self)->method('PUT')->uri($uri);
+        return (new self())->method('PUT')->uri($uri);
     }
 
     /**
@@ -305,7 +315,7 @@ class RequestBuilder
      */
     public static function patch(string|UriInterface $uri): self
     {
-        return (new self)->method('PATCH')->uri($uri);
+        return (new self())->method('PATCH')->uri($uri);
     }
 
     /**
@@ -313,7 +323,7 @@ class RequestBuilder
      */
     public static function delete(string|UriInterface $uri): self
     {
-        return (new self)->method('DELETE')->uri($uri);
+        return (new self())->method('DELETE')->uri($uri);
     }
 
     /**
@@ -321,7 +331,7 @@ class RequestBuilder
      */
     public static function head(string|UriInterface $uri): self
     {
-        return (new self)->method('HEAD')->uri($uri);
+        return (new self())->method('HEAD')->uri($uri);
     }
 
     /**
@@ -329,6 +339,35 @@ class RequestBuilder
      */
     public static function options(string|UriInterface $uri): self
     {
-        return (new self)->method('OPTIONS')->uri($uri);
+        return (new self())->method('OPTIONS')->uri($uri);
+    }
+
+    /**
+     * Validate header name and value for CRLF injection attacks.
+     *
+     * @param  string  $name  The header name
+     * @param  string|array<string>  $value  The header value(s)
+     *
+     * @throws \InvalidArgumentException If header contains CR or LF characters
+     */
+    private function validateHeaderValue(string $name, string|array $value): void
+    {
+        // Check header name for CRLF
+        if (preg_match("/[\r\n]/", $name)) {
+            throw new \InvalidArgumentException(
+                "Header name '{$name}' contains invalid characters (CR/LF)"
+            );
+        }
+
+        // Check header values for CRLF
+        $values = is_array($value) ? $value : [$value];
+
+        foreach ($values as $v) {
+            if (is_string($v) && preg_match("/[\r\n]/", $v)) {
+                throw new \InvalidArgumentException(
+                    "Header '{$name}' value contains invalid characters (CR/LF)"
+                );
+            }
+        }
     }
 }

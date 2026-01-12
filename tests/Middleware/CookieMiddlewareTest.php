@@ -10,7 +10,7 @@ use GuzzleHttp\Psr7\Response;
 
 describe('CookieMiddleware', function () {
     it('adds cookies from jar to request', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $jar->setCookie(new Cookie('session_id', 'abc123', null, 'example.com', '/'));
 
         $middleware = new CookieMiddleware($jar);
@@ -24,7 +24,7 @@ describe('CookieMiddleware', function () {
     });
 
     it('extracts cookies from Set-Cookie response headers', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $middleware = new CookieMiddleware($jar);
 
         $request = new Request('GET', 'https://example.com/login');
@@ -41,7 +41,7 @@ describe('CookieMiddleware', function () {
     });
 
     it('merges with existing Cookie header', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $jar->setCookie(new Cookie('session_id', 'abc123', null, 'example.com', '/'));
 
         $middleware = new CookieMiddleware($jar);
@@ -60,7 +60,7 @@ describe('CookieMiddleware', function () {
     });
 
     it('handles requests with no matching cookies', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $jar->setCookie(new Cookie('session', 'value', null, 'other.com', '/'));
 
         $middleware = new CookieMiddleware($jar);
@@ -74,7 +74,7 @@ describe('CookieMiddleware', function () {
     });
 
     it('handles responses with no Set-Cookie headers', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $middleware = new CookieMiddleware($jar);
 
         $request = new Request('GET', 'https://example.com/api');
@@ -86,7 +86,7 @@ describe('CookieMiddleware', function () {
     });
 
     it('respects secure flag for HTTPS requests', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $jar->setCookie(new Cookie('secure_token', 'secret', null, 'example.com', '/', true));
 
         $middleware = new CookieMiddleware($jar);
@@ -101,7 +101,7 @@ describe('CookieMiddleware', function () {
     });
 
     it('excludes secure cookies from HTTP requests', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $jar->setCookie(new Cookie('secure_token', 'secret', null, 'example.com', '/', true));
 
         $middleware = new CookieMiddleware($jar);
@@ -116,7 +116,7 @@ describe('CookieMiddleware', function () {
     });
 
     it('handles multiple Set-Cookie headers', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $middleware = new CookieMiddleware($jar);
 
         $request = new Request('GET', 'https://example.com/login');
@@ -138,7 +138,7 @@ describe('CookieMiddleware', function () {
     });
 
     it('returns the cookie jar instance', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $middleware = new CookieMiddleware($jar);
 
         expect($middleware->getCookieJar())->toBe($jar);
@@ -151,7 +151,7 @@ describe('CookieMiddleware', function () {
     });
 
     it('can create middleware with custom cookie jar', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $jar->setCookie(new Cookie('existing', 'cookie', null, 'example.com', '/'));
 
         $middleware = CookieMiddleware::create($jar);
@@ -178,7 +178,7 @@ describe('CookieMiddleware', function () {
     });
 
     it('handles complete request-response cycle with cookies', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $middleware = new CookieMiddleware($jar);
 
         // First request: receive cookie from server
@@ -199,7 +199,7 @@ describe('CookieMiddleware', function () {
     });
 
     it('handles cookie updates from server', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $middleware = new CookieMiddleware($jar);
 
         // First request: receive initial cookie
@@ -225,7 +225,7 @@ describe('CookieMiddleware', function () {
     });
 
     it('respects path restrictions', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $jar->setCookie(new Cookie('admin_token', 'secret', null, 'example.com', '/admin'));
 
         $middleware = new CookieMiddleware($jar);
@@ -248,7 +248,7 @@ describe('CookieMiddleware', function () {
     });
 
     it('respects domain restrictions', function () {
-        $jar = new CookieJar;
+        $jar = new CookieJar();
         $jar->setCookie(new Cookie('site_token', 'value', null, 'site.com', '/'));
 
         $middleware = new CookieMiddleware($jar);

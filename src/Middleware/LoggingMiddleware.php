@@ -11,9 +11,25 @@ use Throwable;
 
 class LoggingMiddleware implements MiddlewareInterface
 {
+    /**
+     * Headers that should be redacted from logs for security.
+     *
+     * @var array<string>
+     */
+    private const SENSITIVE_HEADERS = [
+        'authorization',
+        'cookie',
+        'set-cookie',
+        'x-api-key',
+        'x-auth-token',
+        'x-csrf-token',
+        'proxy-authorization',
+    ];
+
     public function __construct(
         private readonly LoggerInterface $logger
-    ) {}
+    ) {
+    }
 
     public function handle(RequestInterface $request, callable $next): ResponseInterface
     {
@@ -23,7 +39,7 @@ class LoggingMiddleware implements MiddlewareInterface
         $this->logger->info(sprintf('[REQUEST] %s %s', $method, $uri), [
             'method' => $method,
             'uri' => $uri,
-            'headers' => $request->getHeaders(),
+            'headers' => $this->sanitizeHeaders($request->getHeaders()),
         ]);
 
         try {
@@ -46,5 +62,26 @@ class LoggingMiddleware implements MiddlewareInterface
 
             throw $exception;
         }
+    }
+
+    /**
+     * Sanitize headers by redacting sensitive values.
+     *
+     * @param  array<string, array<string>>  $headers  The headers to sanitize
+     * @return array<string, array<string>>  The sanitized headers
+     */
+    private function sanitizeHeaders(array $headers): array
+    {
+        $sanitized = [];
+
+        foreach ($headers as $name => $values) {
+            if (in_array(strtolower($name), self::SENSITIVE_HEADERS, true)) {
+                $sanitized[$name] = ['[REDACTED]'];
+            } else {
+                $sanitized[$name] = $values;
+            }
+        }
+
+        return $sanitized;
     }
 }

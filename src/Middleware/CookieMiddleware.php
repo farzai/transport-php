@@ -111,7 +111,7 @@ final class CookieMiddleware implements MiddlewareInterface
      */
     public static function create(?CookieJar $cookieJar = null): self
     {
-        return new self($cookieJar ?? new CookieJar);
+        return new self($cookieJar ?? new CookieJar());
     }
 
     /**

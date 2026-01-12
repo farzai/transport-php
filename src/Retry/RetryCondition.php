@@ -18,7 +18,7 @@ class RetryCondition
      */
     public static function default(): self
     {
-        $condition = new self;
+        $condition = new self();
         $condition->onAnyException();
 
         return $condition;

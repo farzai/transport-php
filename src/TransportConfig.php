@@ -20,13 +20,13 @@ final class TransportConfig
      */
     public function __construct(
         public readonly ClientInterface $client,
-        public readonly LoggerInterface $logger = new NullLogger,
+        public readonly LoggerInterface $logger = new NullLogger(),
         public readonly string $baseUri = '',
         public readonly array $headers = [],
         public readonly int $timeout = 30,
         public readonly int $maxRetries = 0,
-        public readonly RetryStrategyInterface $retryStrategy = new ExponentialBackoffStrategy,
-        public readonly RetryCondition $retryCondition = new RetryCondition,
+        public readonly RetryStrategyInterface $retryStrategy = new ExponentialBackoffStrategy(),
+        public readonly RetryCondition $retryCondition = new RetryCondition(),
         public readonly array $middlewares = []
     ) {
         $this->validate();

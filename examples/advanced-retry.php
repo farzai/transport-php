@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Advanced Retry Logic Example
  *
@@ -61,13 +63,22 @@ echo "  - Fixed delay: 2000ms\n\n";
 echo "3. Custom Retry Conditions\n";
 echo str_repeat('-', 50)."\n";
 
+$retryableStatusCodes = [408, 429, 500, 502, 503, 504];
+
 $transport3 = TransportBuilder::make()
     ->withBaseUri('https://jsonplaceholder.typicode.com')
     ->withRetries(
         maxRetries: 5,
-        strategy: new ExponentialBackoffStrategy,
+        strategy: new ExponentialBackoffStrategy(),
         condition: RetryCondition::default()
-            ->onStatusCodes([408, 429, 500, 502, 503, 504]) // Retry on specific status codes
+            ->when(function (\Throwable $exception, \Farzai\Transport\Retry\RetryContext $context) use ($retryableStatusCodes): bool {
+                // Retry on specific status codes from HTTP exceptions
+                if ($exception instanceof \Farzai\Transport\Exceptions\HttpException && $exception->hasResponse()) {
+                    return in_array($exception->getResponse()->getStatusCode(), $retryableStatusCodes, true);
+                }
+
+                return false;
+            })
     )
     ->build();
 
@@ -83,34 +94,36 @@ echo "  - 504 Gateway Timeout\n\n";
 echo "4. Retry with Custom Condition Callback\n";
 echo str_repeat('-', 50)."\n";
 
+$customCondition = (new RetryCondition())->when(
+    function (\Throwable $exception, \Farzai\Transport\Retry\RetryContext $context): bool {
+        echo "  Retry attempt {$context->attempt}/{$context->maxAttempts}\n";
+        echo "  Exception: {$exception->getMessage()}\n";
+
+        // Retry only on network errors or 5xx responses
+        if ($exception instanceof \Farzai\Transport\Exceptions\ServerException) {
+            echo "  Decision: RETRY (Server error)\n\n";
+
+            return true;
+        }
+
+        if ($exception instanceof \Farzai\Transport\Exceptions\NetworkException) {
+            echo "  Decision: RETRY (Network error)\n\n";
+
+            return true;
+        }
+
+        echo "  Decision: DO NOT RETRY\n\n";
+
+        return false;
+    }
+);
+
 $transport4 = TransportBuilder::make()
     ->withBaseUri('https://jsonplaceholder.typicode.com')
     ->withRetries(
         maxRetries: 3,
-        strategy: new ExponentialBackoffStrategy,
-        condition: RetryCondition::fromCallback(
-            function (\Throwable $exception, \Farzai\Transport\Retry\RetryContext $context): bool {
-                echo "  Retry attempt {$context->attempt}/{$context->maxAttempts}\n";
-                echo "  Exception: {$exception->getMessage()}\n";
-
-                // Retry only on network errors or 5xx responses
-                if ($exception instanceof \Farzai\Transport\Exceptions\ServerException) {
-                    echo "  Decision: RETRY (Server error)\n\n";
-
-                    return true;
-                }
-
-                if ($exception instanceof \Farzai\Transport\Exceptions\NetworkException) {
-                    echo "  Decision: RETRY (Network error)\n\n";
-
-                    return true;
-                }
-
-                echo "  Decision: DO NOT RETRY\n\n";
-
-                return false;
-            }
-        )
+        strategy: new ExponentialBackoffStrategy(),
+        condition: $customCondition
     )
     ->build();
 

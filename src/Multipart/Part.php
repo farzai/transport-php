@@ -25,7 +25,7 @@ final class Part
      * Create a new multipart part.
      *
      * @param  string  $name  The field name
-     * @param  StreamInterface|string|resource  $contents  The content stream or string
+     * @param  StreamInterface|string  $contents  The content stream or string
      * @param  string|null  $filename  Optional filename (for file uploads)
      * @param  array<string, string>  $headers  Optional custom headers
      */

@@ -56,7 +56,8 @@ final class HttpFactory
         private readonly ?ResponseFactoryInterface $responseFactory = null,
         private readonly ?UriFactoryInterface $uriFactory = null,
         private readonly ?StreamFactoryInterface $streamFactory = null
-    ) {}
+    ) {
+    }
 
     /**
      * Get singleton instance with auto-detected factories.
@@ -69,7 +70,7 @@ final class HttpFactory
     public static function getInstance(): self
     {
         if (self::$instance === null) {
-            self::$instance = new self;
+            self::$instance = new self();
         }
 
         return self::$instance;

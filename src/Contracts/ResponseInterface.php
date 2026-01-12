@@ -57,7 +57,7 @@ interface ResponseInterface extends PsrResponseInterface
      *
      * @throws \Psr\Http\Client\ClientExceptionInterface
      */
-    public function throw(?callable $callback = null);
+    public function throw(?callable $callback = null): static;
 
     /**
      * Return the psr request.

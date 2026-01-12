@@ -22,8 +22,8 @@ describe('TransportBuilder', function () {
     });
 
     it('can build transport with custom client and logger', function () {
-        $client = new GuzzleClient;
-        $logger = new NullLogger;
+        $client = new GuzzleClient();
+        $logger = new NullLogger();
 
         $transport = TransportBuilder::make()
             ->setClient($client)
@@ -79,14 +79,14 @@ describe('TransportBuilder', function () {
     });
 
     it('can get configured client', function () {
-        $client = new GuzzleClient;
+        $client = new GuzzleClient();
         $builder = TransportBuilder::make()->setClient($client);
 
         expect($builder->getClient())->toBe($client);
     });
 
     it('can get configured logger', function () {
-        $logger = new NullLogger;
+        $logger = new NullLogger();
         $builder = TransportBuilder::make()->setLogger($logger);
 
         expect($builder->getLogger())->toBe($logger);
@@ -128,7 +128,7 @@ describe('TransportBuilder', function () {
     });
 
     it('can enable cookie jar', function () {
-        $cookieJar = new \Farzai\Transport\Cookie\CookieJar;
+        $cookieJar = new \Farzai\Transport\Cookie\CookieJar();
         $builder = TransportBuilder::make()->withCookieJar($cookieJar);
 
         $transport = $builder->build();

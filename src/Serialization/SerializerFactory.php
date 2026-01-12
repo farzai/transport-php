@@ -111,7 +111,7 @@ final class SerializerFactory
         if (isset(self::$contentTypeMap[$normalizedType])) {
             $serializerClass = self::$contentTypeMap[$normalizedType];
 
-            return new $serializerClass;
+            return new $serializerClass();
         }
 
         throw new \InvalidArgumentException(

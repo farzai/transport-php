@@ -20,7 +20,8 @@ class RetryContext
         public readonly ?Throwable $lastException = null,
         public readonly array $delaysUsed = [],
         public readonly array $exceptions = []
-    ) {}
+    ) {
+    }
 
     /**
      * Check if we have retries remaining.

@@ -134,8 +134,8 @@ describe('Part', function () {
 
 describe('MultipartStreamBuilder', function () {
     it('generates unique boundary', function () {
-        $builder1 = new MultipartStreamBuilder;
-        $builder2 = new MultipartStreamBuilder;
+        $builder1 = new MultipartStreamBuilder();
+        $builder2 = new MultipartStreamBuilder();
 
         expect($builder1->getBoundary())->not->toBe($builder2->getBoundary());
     });

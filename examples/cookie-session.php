@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Cookie Session Example
  *
@@ -50,7 +52,7 @@ echo "2. Simulated Login Flow\n";
 echo str_repeat('-', 50)."\n";
 
 try {
-    $cookieJar = new CookieJar;
+    $cookieJar = new CookieJar();
 
     $transport = TransportBuilder::make()
         ->withBaseUri('https://httpbin.org')
@@ -84,7 +86,7 @@ echo "3. Manual Cookie Management\n";
 echo str_repeat('-', 50)."\n";
 
 try {
-    $cookieJar = new CookieJar;
+    $cookieJar = new CookieJar();
 
     // Manually create and add cookies
     $sessionCookie = new Cookie(
@@ -129,7 +131,7 @@ echo "4. Cookie Inspection\n";
 echo str_repeat('-', 50)."\n";
 
 try {
-    $cookieJar = new CookieJar;
+    $cookieJar = new CookieJar();
 
     // Add various cookies
     $cookieJar->setCookie(new Cookie('cookie1', 'value1', null, 'example.com', '/'));
@@ -167,7 +169,7 @@ echo str_repeat('-', 50)."\n";
 
 try {
     // Create jar and add cookies
-    $jar1 = new CookieJar;
+    $jar1 = new CookieJar();
     $jar1->setCookie(new Cookie('persistent', 'data', time() + 86400, 'example.com'));
     $jar1->setCookie(new Cookie('preferences', 'dark_mode=true', time() + 2592000, 'example.com'));
 
@@ -181,7 +183,7 @@ try {
     echo "Cookies saved to: {$cookieFile}\n";
 
     // Later... Import cookies
-    $jar2 = new CookieJar;
+    $jar2 = new CookieJar();
     $imported = json_decode(file_get_contents($cookieFile), true);
     $jar2->fromArray($imported);
 
@@ -199,7 +201,7 @@ echo "6. Cookie Filtering and Removal\n";
 echo str_repeat('-', 50)."\n";
 
 try {
-    $cookieJar = new CookieJar;
+    $cookieJar = new CookieJar();
 
     // Add mix of cookies
     $cookieJar->setCookie(new Cookie('keep', 'value', time() + 3600));
@@ -224,7 +226,7 @@ echo "7. Web Scraping Simulation\n";
 echo str_repeat('-', 50)."\n";
 
 try {
-    $cookieJar = new CookieJar;
+    $cookieJar = new CookieJar();
 
     // Create transport for scraping
     $scraper = TransportBuilder::make()
@@ -262,7 +264,7 @@ echo str_repeat('-', 50)."\n";
 
 try {
     // Without session persistence (default)
-    $regularJar = new CookieJar;
+    $regularJar = new CookieJar();
     $regularJar->setCookie(new Cookie('session', 'value')); // Session cookie
     $regularJar->setCookie(new Cookie('persistent', 'value', time() + 3600)); // Persistent
 
